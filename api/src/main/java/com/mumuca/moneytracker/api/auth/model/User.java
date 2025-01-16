@@ -1,5 +1,6 @@
 package com.mumuca.moneytracker.api.auth.model;
 
+import com.mumuca.moneytracker.api.account.model.Account;
 import jakarta.persistence.Entity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -66,6 +67,9 @@ public class User {
     @LastModifiedDate
     @Column(name = "last_modified_date")
     private Instant lastModifiedDate = Instant.now();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Account> accounts = new ArrayList<>();
 
     public User(String id) {
         this.id = id;
