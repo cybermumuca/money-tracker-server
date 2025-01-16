@@ -81,4 +81,9 @@ public class AuthServiceImpl implements AuthService {
 
         return new SignedIn(jwt, expiresIn);
     }
+
+    @Override
+    public void signOut(String tokenValue, Instant expiresIn) {
+        //TODO: Implement jwt blacklist
+    }
 }

@@ -37,6 +37,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<APIErrorResponse<String>> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
+        System.out.println(ex.getHttpInputMessage());
+        ex.printStackTrace();
         return buildErrorResponse(
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "Malformed JSON request.",
@@ -46,6 +48,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<APIErrorResponse<String>> handleException(Exception ex) {
+        ex.printStackTrace();
         return buildErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal server error.",

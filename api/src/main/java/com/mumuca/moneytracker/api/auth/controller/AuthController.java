@@ -4,10 +4,11 @@ import com.mumuca.moneytracker.api.auth.dto.SignInDTO;
 import com.mumuca.moneytracker.api.auth.dto.SignedIn;
 import com.mumuca.moneytracker.api.auth.service.AuthService;
 import com.mumuca.moneytracker.api.auth.dto.SignUpDTO;
-import jakarta.servlet.http.Cookie;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,5 +44,23 @@ public class AuthController {
                 .status(HttpStatus.OK)
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                 .body(signInResponse);
+    }
+
+    @PostMapping(path = "/v1/auth/sign-out")
+    public ResponseEntity<Void> signOut(@AuthenticationPrincipal Jwt jwt) {
+        authService.signOut(jwt.getTokenValue(), jwt.getExpiresAt());
+
+        HttpCookie jwtCookie = ResponseCookie.from("jwt", "")
+                .path("/")
+                .httpOnly(true)
+                .secure(true)
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .build();
     }
 }
