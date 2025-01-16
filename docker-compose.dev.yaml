@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: dev-postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: devdb
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+  redis:
+    image: redis:alpine
+    container_name: dev-redis
+    restart: always
+    ports:
+      - "6379:6379"
+  redis-insight:
+    container_name: dev-redis-insight
+    image: redis/redisinsight:latest
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    environment:
+      - RI_APP_PORT=5540

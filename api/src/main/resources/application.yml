@@ -1,0 +1,77 @@
+server:
+  port: 8081
+  error:
+    whitelabel:
+      enabled: false
+spring:
+  threads:
+    virtual:
+      enabled: true
+  application:
+    name: Money Tracker API
+  datasource:
+    url: jdbc:postgresql://localhost:5432/devdb
+    driver-class-name: org.postgresql.Driver
+    username: devuser
+    password: devpassword
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+  jpa:
+    defer-datasource-initialization: false
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        session:
+          events:
+            log:
+              LOG_QUERIES_SLOWER_THAN_MS: 30
+    open-in-view: false
+
+
+jwt:
+  public:
+    key: |
+      -----BEGIN PUBLIC KEY-----
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAjXqo15Bez4j8JIYhJtHH
+      CKnkj7b8mvT6kW9AmWuZ1nCUBqjKPlabGTvITZOTAUrE0VUlZ0J4P4YsgTP15AJ9
+      jjrZka/EEOlkI1AwNqYGdMvU5+Tu+FmBVEcCEh5+g76BuOIj38OdFpHcRBX/fePW
+      a28OWGiaC4Fi0zkemmwobXN7CjZsinHgVa7dC3zmTmhg1etEq5AKBm+p08rL/Ltc
+      a0729Tlumk3up0cBucYZU1ZNZa6ebpUin3Bs9+KPqIdVFK91gh0ZsWjDDJOCZ6r4
+      bkdHdOrZ28kkSsPkAhGtgjXJjNgo8DdUrLJjsbn0FaUtW85uvp3u0O5RRMwUFqy7
+      RQIDAQAB
+      -----END PUBLIC KEY-----
+  private:
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCNeqjXkF7PiPwk
+      hiEm0ccIqeSPtvya9PqRb0CZa5nWcJQGqMo+VpsZO8hNk5MBSsTRVSVnQng/hiyB
+      M/XkAn2OOtmRr8QQ6WQjUDA2pgZ0y9Tn5O74WYFURwISHn6DvoG44iPfw50WkdxE
+      Ff9949Zrbw5YaJoLgWLTOR6abChtc3sKNmyKceBVrt0LfOZOaGDV60SrkAoGb6nT
+      ysv8u1xrTvb1OW6aTe6nRwG5xhlTVk1lrp5ulSKfcGz34o+oh1UUr3WCHRmxaMMM
+      k4JnqvhuR0d06tnbySRKw+QCEa2CNcmM2CjwN1SssmOxufQVpS1bzm6+ne7Q7lFE
+      zBQWrLtFAgMBAAECggEACQ5X7mx0VS58jU30o0p8Rgax9a0N4FFcFKEdbnSfxUUx
+      hHebcoASr3vPJ4ARwdxqWsfre/+aON66zI5p5+1s4gTMVnH8x+RYn5YLcAQSl7lQ
+      aIOT9FuuVpmw/T3sdTxli1MWXsVjscUmZ0lNMF68I+ZY8bnIWoIutDyMw++2asMH
+      5dZiYn3ox7URKtgNzVZ/RDROEAhVs3A5h9NQE7yIQHLvlb+/fmLbbgqsZa38YBva
+      JjjmUdHhfQbPawsbpbBTQPOa60kSISfiF9Gs3qzQRTYG0h8NsBHKEqZ6EEPFQdOM
+      BmPcQDyZwXD1VsvyRHzjovx8kRbyfPtNNLb6ZfQhhQKBgQDgCHoVZ5gLqRc4yGAd
+      heqnrZhDmnz0BPwlrbPgwg4KAKiOknNQ9SSG/lYydLsrwgeByvRdur7p70sHFsYL
+      /pKNRLnH0c9rf9UtOQj9STBJwUCt249HizpMXsVWadXSHOOjZzAfL96Khs3UfZkS
+      ayJDGz0jFqvOlcWqj4A052srIwKBgQChqqLB4GBvdQIEE663fTqesN0GyE73wEfy
+      PCEOEk1kLRB3ma0UqpJRc/byRsn+dzx42ZSRNiyNlFyJloG2cvlsA4jRVX+yFd7Q
+      XhUBOPvA673LkcxbgbcM3WA16t8wbaHbVZFrck4MuUkkXR6uQakrjn0vPoYyyXtj
+      w0KHMM96dwKBgH5JaQBN4DCahaOVmFCsH6WbvpxFJrCrarOWojJNUXqj+mA7/9Mg
+      DRInptFUafn1qyOoE24OifX21RVO6h7yxwvpNMyF4eWYLsQKRZ35tsWssVgPz0mm
+      GxvXxGe8yzJg5JVE4qSB6HGwIbDph/MQ/0RSw3jXG8wdM0q9D6lC1m9/AoGBAJ5Q
+      bUYSph0/phO7+pKxTaBtbmTf74TqhQoQHAadobAB+WhF05qzVsnxF9k1vUU2Gr/1
+      wmlZddPHf7805h13Bg3igC8O3RfWFvZRy5wA43iO4rPhORA7PLiaaUcjlCDmm2Qg
+      rWFc9FW9dITps8vNfQ6sYKbNQbmmWPDfG90rzWINAoGAa2QDSeaY0aul/Uj7KXEB
+      gOr88l0hqajl9LXZijuBi/ABMhSbBcj3LH4jpx4tfoXn3lGvPrDLxnya4R8c/0DC
+      unSVFUpafunAv+WUjAw1iJL1+Hw+OWn/lTibJhzYTcyPyEWzWOifubHGToBTxKib
+      OWytd00j0A+ge9M9l/22078=
+      -----END PRIVATE KEY-----
+
+bcrypt:
+  salt: 13
