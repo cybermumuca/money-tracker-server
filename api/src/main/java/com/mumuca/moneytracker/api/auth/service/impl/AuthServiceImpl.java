@@ -49,6 +49,8 @@ public class AuthServiceImpl implements AuthService {
         user.setLastName(signUpDTO.lastName());
         user.setEmail(signUpDTO.email());
         user.setPassword(passwordEncoder.encode(signUpDTO.password()));
+        user.setGender(signUpDTO.gender());
+        user.setBirthDate(signUpDTO.birthDate());
 
         userRepository.save(user);
     }
