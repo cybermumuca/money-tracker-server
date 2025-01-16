@@ -10,27 +10,13 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.mumuca.moneytracker.api.util.HttpUtils.buildErrorResponse;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
-
-    private <T> ResponseEntity<APIErrorResponse<T>> buildErrorResponse(
-            HttpStatus status,
-            String title,
-            T details
-    ) {
-        APIErrorResponse<T> errorResponse = new APIErrorResponse<>(
-                status.value(),
-                LocalDateTime.now(),
-                title,
-                details
-        );
-
-        return ResponseEntity.status(status).body(errorResponse);
-    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<APIErrorResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
@@ -55,6 +41,15 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "Malformed JSON request.",
                 "The request has formatting errors."
+        );
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<APIErrorResponse<String>> handleException(Exception ex) {
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Internal server error.",
+                "An unexpected error occurred."
         );
     }
 }
