@@ -1,5 +1,6 @@
 package com.mumuca.moneytracker.api.exception.handler;
 
+import com.mumuca.moneytracker.api.exception.ResourceNotFoundException;
 import com.mumuca.moneytracker.api.exception.dto.APIErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -53,6 +54,15 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "Internal server error.",
                 "An unexpected error occurred."
+        );
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return buildErrorResponse(
+                HttpStatus.NOT_FOUND,
+                "Resource not found.",
+                ex.getMessage()
         );
     }
 }
