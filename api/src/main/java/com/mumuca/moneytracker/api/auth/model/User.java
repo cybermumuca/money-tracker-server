@@ -8,6 +8,10 @@ import org.springframework.data.annotation.LastModifiedDate;
 
 import java.time.Instant;
 import java.util.*;
+import org.hibernate.annotations.JdbcType;
+import org.hibernate.dialect.PostgreSQLEnumJdbcType;
+import java.time.LocalDate;
+import java.time.Period;
 
 @Entity
 @Table(name = "users")
@@ -44,6 +48,17 @@ public class User {
     @Column(name = "password")
     private String password;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    @JdbcType(value = PostgreSQLEnumJdbcType.class)
+    private Gender gender;
+
+    @Column(name = "birthDate")
+    private LocalDate birthDate;
+
+    @Column(name = "photoUrl")
+    private String photoUrl;
+
     @CreatedDate
     @Column(name = "created_date")
     private Instant createdDate = Instant.now();
@@ -54,5 +69,9 @@ public class User {
 
     public User(String id) {
         this.id = id;
+    }
+
+    public int getAge() {
+        return Period.between(this.birthDate, LocalDate.now()).getYears();
     }
 }
