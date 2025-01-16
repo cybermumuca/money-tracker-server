@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: test-postgres
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpassword
+  redis:
+    image: redis:alpine
+    container_name: test-redis
+    restart: always
+    ports:
+      - "6380:6379"
+  redis-insight:
+    container_name: test-redis-insight
+    image: redis/redisinsight:latest
+    ports:
+      - "5541:5540"
+    depends_on:
+      - redis
+    environment:
+      - RI_APP_PORT=5540
