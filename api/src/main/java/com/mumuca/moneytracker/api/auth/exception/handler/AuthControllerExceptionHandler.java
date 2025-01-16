@@ -1,6 +1,7 @@
 package com.mumuca.moneytracker.api.auth.exception.handler;
 
 import com.mumuca.moneytracker.api.auth.controller.AuthController;
+import com.mumuca.moneytracker.api.auth.exception.CredentialsMismatchException;
 import com.mumuca.moneytracker.api.auth.exception.UserAlreadyExistsException;
 import com.mumuca.moneytracker.api.exception.dto.APIErrorResponse;
 import org.springframework.http.HttpStatus;
@@ -18,6 +19,15 @@ public class AuthControllerExceptionHandler {
                 HttpStatus.CONFLICT,
                 "User already exists.",
                 "The user already exists."
+        );
+    }
+
+    @ExceptionHandler(CredentialsMismatchException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleCredentialsMismatchException(CredentialsMismatchException ex) {
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Credentials mismatch.",
+                ex.getMessage()
         );
     }
 }
