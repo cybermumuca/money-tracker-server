@@ -14,6 +14,27 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+* Controlador para gerenciar transferências.
+* <p>
+* Funcionalidades:
+* <ul>
+* <li>Registrar uma transferência única;</li>
+* <li>Registrar uma transferência repetida;</li>
+* <li>Registrar uma transferência parcelada;</li>
+* <li>Editar uma transferência (única, parcelada ou repetida);</li>
+* <li>Editar futuras transferências repetidas;</li>
+* <li>Editar futuras transferências parceladas;</li>
+* <li>Editar todas as recorrências de transferências repetidas;</li>
+* <li>Pegar transferência;</li>
+* <li>Listar transferências;</li>
+* <li>Pagar transferência;</li>
+* <li>"Despagar" transferência;</li>
+* <li>Deletar transferência (única, parcelada ou repetida);</li>
+* <li>Deletar transferências futuras;</li>
+* <li>Pesquisar transferências;</li>
+* </ul>
+*/
 @RestController
 @AllArgsConstructor
 public class TransferController {
