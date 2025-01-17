@@ -23,9 +23,9 @@ public class Recurrence {
     private String id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "interval")
+    @Column(name = "recurrence_interval")
     @JdbcType(value = PostgreSQLEnumJdbcType.class)
-    private Interval interval;
+    private RecurrenceInterval interval;
 
     @Column(name = "first_occurrence")
     private LocalDate firstOccurrence;

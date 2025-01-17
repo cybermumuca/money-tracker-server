@@ -1,6 +1,6 @@
 package com.mumuca.moneytracker.api.account.model;
 
-public enum Interval {
+public enum RecurrenceInterval {
     DAILY,
     WEEKLY,
     BIWEEKLY,

@@ -120,7 +120,7 @@ public class TransferServiceImpl implements TransferService {
 
             Recurrence recurrence = Recurrence.builder()
                     .firstOccurrence(registerUniqueTransferDTO.billingDate())
-                    .interval(Interval.MONTHLY)
+                    .interval(RecurrenceInterval.MONTHLY)
                     .transactionType(TransactionType.TRANSFER)
                     .recurrenceType(RecurrenceType.UNIQUE)
                     .user(new User(userId))
