@@ -1,6 +1,7 @@
 package com.mumuca.moneytracker.api.account.controller;
 
 import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
+import com.mumuca.moneytracker.api.account.dto.RegisterRepeatedTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.TransferDTO;
 import com.mumuca.moneytracker.api.account.service.TransferService;
@@ -53,4 +54,18 @@ public class TransferController {
                 .status(HttpStatus.CREATED)
                 .body(transfer);
     }
+
+    @PostMapping(path = "/v1/transfers/repeated")
+    public ResponseEntity<RecurrenceDTO<TransferDTO>> registerRepeatedTransfer(
+            @Valid @RequestBody RegisterRepeatedTransferDTO registerRepeatedTransferDTO,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        RecurrenceDTO<TransferDTO> transfer = transferService
+                .registerRepeatedTransfer(registerRepeatedTransferDTO, jwt.getSubject());
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(transfer);
+    }
+
 }

@@ -1,9 +1,6 @@
 package com.mumuca.moneytracker.api.account.service.impl;
 
-import com.mumuca.moneytracker.api.account.dto.AccountDTO;
-import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
-import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
-import com.mumuca.moneytracker.api.account.dto.TransferDTO;
+import com.mumuca.moneytracker.api.account.dto.*;
 import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
@@ -14,11 +11,13 @@ import com.mumuca.moneytracker.api.exception.ResourceIsArchivedException;
 import com.mumuca.moneytracker.api.exception.ResourceNotFoundException;
 import com.mumuca.moneytracker.api.model.Money;
 import com.mumuca.moneytracker.api.providers.CurrencyProvider;
+import com.mumuca.moneytracker.api.providers.DateProvider;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -33,6 +32,7 @@ public class TransferServiceImpl implements TransferService {
     private final AccountRepository accountRepository;
     private final RecurrenceRepository recurrenceRepository;
     private final CurrencyProvider currencyProvider;
+    private final DateProvider dateProvider;
 
     private void handleCurrencyConversions(
         Transfer transfer,
@@ -193,6 +193,142 @@ public class TransferServiceImpl implements TransferService {
                             transfer.isPaid(),
                             transfer.getRecurrence().getId()
                     ))
+            );
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+
+            if (cause instanceof ResourceNotFoundException) {
+                throw (ResourceNotFoundException) cause;
+            }
+
+            if (cause instanceof ResourceIsArchivedException) {
+                throw (ResourceIsArchivedException) cause;
+            }
+
+            throw new RuntimeException("An error occurred while registering an unique transfer: ", e);
+        }
+    }
+
+    @Override
+    @Transactional
+    public RecurrenceDTO<TransferDTO> registerRepeatedTransfer(
+            RegisterRepeatedTransferDTO registerRepeatedTransferDTO,
+            String userId
+    ) {
+        try (ExecutorService virtualThreadExecutor = Executors.newVirtualThreadPerTaskExecutor()) {
+            CompletableFuture<Account> sourceAccountFuture = CompletableFuture.supplyAsync(() ->
+                            accountRepository.findByIdAndUserId(registerRepeatedTransferDTO.fromAccount(), userId)
+                                    .orElseThrow(() -> new ResourceNotFoundException("Source Account not found.")),
+                    virtualThreadExecutor
+            );
+
+            CompletableFuture<Account> destinationAccountFuture = CompletableFuture.supplyAsync(() ->
+                            accountRepository.findByIdAndUserId(registerRepeatedTransferDTO.toAccount(), userId)
+                                    .orElseThrow(() -> new ResourceNotFoundException("Destination Account not found.")),
+                    virtualThreadExecutor
+            );
+
+            Account sourceAccount = sourceAccountFuture.join();
+            Account destinationAccount = destinationAccountFuture.join();
+
+            if (sourceAccount.isArchived()) {
+                throw new ResourceIsArchivedException("Source Account is archived.");
+            }
+
+            if (destinationAccount.isArchived()) {
+                throw new ResourceIsArchivedException("Destination Account is archived.");
+            }
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(registerRepeatedTransferDTO.billingDate())
+                    .interval(registerRepeatedTransferDTO.recurrenceInterval())
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .user(new User(userId))
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            List<LocalDate> billingDates = dateProvider.generateDates(
+                    registerRepeatedTransferDTO.billingDate(),
+                    registerRepeatedTransferDTO.recurrenceInterval(),
+                    registerRepeatedTransferDTO.numberOfRecurrences()
+            );
+
+
+            List<Transfer> transfers = billingDates
+                    .stream()
+                    .map((billingDate) -> {
+                        Money transferValue = new Money(registerRepeatedTransferDTO.amount(), registerRepeatedTransferDTO.currency());
+
+                        boolean isPaid = registerRepeatedTransferDTO.billingDate().equals(billingDate) ? registerRepeatedTransferDTO.paid() : false;
+
+                        return Transfer.builder()
+                                .title(registerRepeatedTransferDTO.title())
+                                .description(registerRepeatedTransferDTO.description())
+                                .sourceAccount(sourceAccount)
+                                .destinationAccount(destinationAccount)
+                                .value(transferValue)
+                                .billingDate(billingDate)
+                                .paid(isPaid)
+                                .recurrence(recurrence)
+                                .build();
+                    })
+                    .toList();
+
+            transferRepository.saveAll(transfers);
+
+            boolean transferIsPaid = registerRepeatedTransferDTO.paid();
+
+            if (transferIsPaid) {
+                handleCurrencyConversions(transfers.getFirst(), sourceAccount, destinationAccount);
+            }
+
+            accountRepository.saveAll(List.of(sourceAccount, destinationAccount));
+
+            AccountDTO sourceAccountDTO = new AccountDTO(
+                    sourceAccount.getId(),
+                    sourceAccount.getName(),
+                    sourceAccount.getColor(),
+                    sourceAccount.getIcon(),
+                    sourceAccount.getType(),
+                    sourceAccount.getBalance().getAmount(),
+                    sourceAccount.getBalance().getCurrency(),
+                    sourceAccount.isArchived()
+            );
+
+            AccountDTO destinationAccountDTO = new AccountDTO(
+                    destinationAccount.getId(),
+                    destinationAccount.getName(),
+                    destinationAccount.getColor(),
+                    destinationAccount.getIcon(),
+                    destinationAccount.getType(),
+                    destinationAccount.getBalance().getAmount(),
+                    destinationAccount.getBalance().getCurrency(),
+                    destinationAccount.isArchived()
+            );
+
+            return new RecurrenceDTO<TransferDTO>(
+                    recurrence.getId(),
+                    recurrence.getInterval(),
+                    recurrence.getFirstOccurrence(),
+                    recurrence.getTransactionType(),
+                    recurrence.getRecurrenceType(),
+                    transfers
+                            .stream()
+                            .map((transfer) -> new TransferDTO(
+                                    transfer.getId(),
+                                    transfer.getTitle(),
+                                    transfer.getDescription(),
+                                    sourceAccountDTO,
+                                    destinationAccountDTO,
+                                    transfer.getValue().getAmount(),
+                                    transfer.getValue().getCurrency(),
+                                    transfer.getBillingDate(),
+                                    transfer.isPaid(),
+                                    transfer.getRecurrence().getId()
+                            ))
+                            .toList()
             );
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
