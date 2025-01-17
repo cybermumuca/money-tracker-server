@@ -1,7 +1,6 @@
 package com.mumuca.moneytracker.api.exception.handler;
 
-import com.mumuca.moneytracker.api.exception.DifferentCurrenciesException;
-import com.mumuca.moneytracker.api.exception.ResourceNotFoundException;
+import com.mumuca.moneytracker.api.exception.*;
 import com.mumuca.moneytracker.api.exception.dto.APIErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -70,8 +69,35 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DifferentCurrenciesException.class)
     public ResponseEntity<APIErrorResponse<String>> handleDifferentCurrenciesException(DifferentCurrenciesException ex) {
         return buildErrorResponse(
-                HttpStatus.BAD_REQUEST,
+                HttpStatus.CONFLICT,
                 "Different currencies.",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResourceAlreadyActiveException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleResourceAlreadyActiveException(ResourceAlreadyActiveException ex) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "Resource already active.",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResourceAlreadyArchivedException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleResourceAlreadyArchivedException(ResourceAlreadyArchivedException ex) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "Resource already archived.",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ResourceIsArchivedException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleResourceIsArchivedException(ResourceIsArchivedException ex) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "Resource is archived.",
                 ex.getMessage()
         );
     }
