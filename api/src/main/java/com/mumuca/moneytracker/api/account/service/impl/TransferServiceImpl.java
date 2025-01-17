@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -114,6 +115,7 @@ public class TransferServiceImpl implements TransferService {
             if (sourceAccount.isArchived()) {
                 throw new ResourceIsArchivedException("Source Account is archived.");
             }
+
             if (destinationAccount.isArchived()) {
                 throw new ResourceIsArchivedException("Destination Account is archived.");
             }
@@ -178,6 +180,7 @@ public class TransferServiceImpl implements TransferService {
                     recurrence.getInterval(),
                     recurrence.getFirstOccurrence(),
                     recurrence.getTransactionType(),
+                    recurrence.getRecurrenceType(),
                     List.of(new TransferDTO(
                             transfer.getId(),
                             transfer.getTitle(),
@@ -191,6 +194,18 @@ public class TransferServiceImpl implements TransferService {
                             transfer.getRecurrence().getId()
                     ))
             );
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+
+            if (cause instanceof ResourceNotFoundException) {
+                throw (ResourceNotFoundException) cause;
+            }
+
+            if (cause instanceof ResourceIsArchivedException) {
+                throw (ResourceIsArchivedException) cause;
+            }
+
+            throw new RuntimeException("An error occurred while registering an unique transfer: ", e);
         }
     }
 }

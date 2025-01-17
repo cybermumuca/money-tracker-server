@@ -1,6 +1,7 @@
 package com.mumuca.moneytracker.api.account.dto;
 
 import com.mumuca.moneytracker.api.account.model.RecurrenceInterval;
+import com.mumuca.moneytracker.api.account.model.RecurrenceType;
 import com.mumuca.moneytracker.api.account.model.TransactionType;
 
 import java.time.LocalDate;
@@ -11,5 +12,6 @@ public record RecurrenceDTO<T>(
         RecurrenceInterval interval,
         LocalDate firstOccurrence,
         TransactionType transactionType,
+        RecurrenceType recurrenceType,
         List<T> recurrences
 ) {}
