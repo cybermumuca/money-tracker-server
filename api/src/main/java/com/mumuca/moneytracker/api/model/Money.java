@@ -1,6 +1,6 @@
 package com.mumuca.moneytracker.api.model;
 
-import com.mumuca.moneytracker.api.account.exceptions.DifferentCurrenciesException;
+import com.mumuca.moneytracker.api.exception.DifferentCurrenciesException;
 import jakarta.persistence.Embeddable;
 import lombok.*;
 

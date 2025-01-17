@@ -1,5 +1,6 @@
 package com.mumuca.moneytracker.api.exception.handler;
 
+import com.mumuca.moneytracker.api.exception.DifferentCurrenciesException;
 import com.mumuca.moneytracker.api.exception.ResourceNotFoundException;
 import com.mumuca.moneytracker.api.exception.dto.APIErrorResponse;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -62,6 +63,15 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(
                 HttpStatus.NOT_FOUND,
                 "Resource not found.",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(DifferentCurrenciesException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleDifferentCurrenciesException(DifferentCurrenciesException ex) {
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                "Different currencies.",
                 ex.getMessage()
         );
     }

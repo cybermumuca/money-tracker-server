@@ -1,4 +1,4 @@
-package com.mumuca.moneytracker.api.account.exceptions;
+package com.mumuca.moneytracker.api.exception;
 
 public class DifferentCurrenciesException extends RuntimeException {
     public DifferentCurrenciesException(String message) {
