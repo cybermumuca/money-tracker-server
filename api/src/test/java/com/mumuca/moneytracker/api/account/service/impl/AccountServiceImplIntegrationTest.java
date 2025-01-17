@@ -89,8 +89,8 @@ class AccountServiceImplIntegrationTest {
             assertThat(accountInDatabase.getColor()).isEqualTo(createAccountDTO.color());
             assertThat(accountInDatabase.getIcon()).isEqualTo(createAccountDTO.icon());
             assertThat(accountInDatabase.getType()).isEqualTo(createAccountDTO.type());
-            assertThat(accountInDatabase.getMoney().getBalance()).isEqualByComparingTo(createAccountDTO.balance());
-            assertThat(accountInDatabase.getMoney().getCurrency()).isEqualTo(createAccountDTO.currency());
+            assertThat(accountInDatabase.getBalance().getAmount()).isEqualByComparingTo(createAccountDTO.balance());
+            assertThat(accountInDatabase.getBalance().getCurrency()).isEqualTo(createAccountDTO.currency());
             assertThat(accountInDatabase.isArchived()).isFalse();
             assertThat(accountInDatabase.getUser().getId()).isEqualTo(user.getId());
         }
@@ -121,8 +121,8 @@ class AccountServiceImplIntegrationTest {
             assertThat(result.color()).isEqualTo(account.getColor());
             assertThat(result.icon()).isEqualTo(account.getIcon());
             assertThat(result.type()).isEqualTo(account.getType());
-            assertThat(result.balance()).isEqualByComparingTo(account.getMoney().getBalance());
-            assertThat(result.currency()).isEqualTo(account.getMoney().getCurrency());
+            assertThat(result.balance()).isEqualByComparingTo(account.getBalance().getAmount());
+            assertThat(result.currency()).isEqualTo(account.getBalance().getCurrency());
             assertThat(result.isArchived()).isEqualTo(account.isArchived());
         }
 
@@ -173,8 +173,8 @@ class AccountServiceImplIntegrationTest {
             assertThat(accountResult.color()).isEqualTo(activeAccount.getColor());
             assertThat(accountResult.icon()).isEqualTo(activeAccount.getIcon());
             assertThat(accountResult.type()).isEqualTo(activeAccount.getType());
-            assertThat(accountResult.balance()).isEqualByComparingTo(activeAccount.getMoney().getBalance());
-            assertThat(accountResult.currency()).isEqualTo(activeAccount.getMoney().getCurrency());
+            assertThat(accountResult.balance()).isEqualByComparingTo(activeAccount.getBalance().getAmount());
+            assertThat(accountResult.currency()).isEqualTo(activeAccount.getBalance().getCurrency());
             assertThat(accountResult.isArchived()).isEqualTo(false);
         }
     }
@@ -210,8 +210,8 @@ class AccountServiceImplIntegrationTest {
             assertThat(accountResult.color()).isEqualTo(archivedAccount.getColor());
             assertThat(accountResult.icon()).isEqualTo(archivedAccount.getIcon());
             assertThat(accountResult.type()).isEqualTo(archivedAccount.getType());
-            assertThat(accountResult.balance()).isEqualByComparingTo(archivedAccount.getMoney().getBalance());
-            assertThat(accountResult.currency()).isEqualTo(archivedAccount.getMoney().getCurrency());
+            assertThat(accountResult.balance()).isEqualByComparingTo(archivedAccount.getBalance().getAmount());
+            assertThat(accountResult.currency()).isEqualTo(archivedAccount.getBalance().getCurrency());
             assertThat(accountResult.isArchived()).isEqualTo(true);
         }
     }

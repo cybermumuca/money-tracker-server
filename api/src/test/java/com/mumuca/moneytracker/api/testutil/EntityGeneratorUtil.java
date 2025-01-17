@@ -32,7 +32,7 @@ public class EntityGeneratorUtil {
                 .color(faker.color().name())
                 .icon(faker.internet().avatar())
                 .type(faker.options().option(AccountType.class))
-                .money(new Money(BigDecimal.valueOf(faker.number().numberBetween(0, 700)), faker.currency().code()))
+                .balance(new Money(BigDecimal.valueOf(faker.number().numberBetween(0, 700)), faker.currency().code()))
                 .build();
     }
 }

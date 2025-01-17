@@ -8,6 +8,7 @@ import lombok.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class Account extends Archivable {
             @AttributeOverride(name = "balance", column = @Column(name = "balance")),
             @AttributeOverride(name = "currency", column = @Column(name = "currency"))
     })
-    private Money money;
+    private Money balance;
 
     @OneToMany(mappedBy = "sourceAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Transfer> sentTransfers = new ArrayList<>();
@@ -64,5 +65,21 @@ public class Account extends Archivable {
     @Override
     public void unarchive() {
         super.unarchive();
+    }
+
+    public void deposit(Money money) {
+        this.balance.add(money);
+    }
+
+    public void deposit(BigDecimal amount) {
+        this.balance.add(amount);
+    }
+
+    public void withdraw(Money money) {
+        this.balance.subtract(money);
+    }
+
+    public void withdraw(BigDecimal amount) {
+        this.balance.subtract(amount);
     }
 }

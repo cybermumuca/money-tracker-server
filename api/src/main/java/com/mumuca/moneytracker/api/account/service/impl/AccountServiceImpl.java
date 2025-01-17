@@ -29,7 +29,7 @@ public class AccountServiceImpl implements AccountService {
                 .color(createAccountDTO.color())
                 .icon(createAccountDTO.icon())
                 .type(createAccountDTO.type())
-                .money(new Money(createAccountDTO.balance(), createAccountDTO.currency()))
+                .balance(new Money(createAccountDTO.balance(), createAccountDTO.currency()))
                 .user(new User(userId))
                 .build();
 
@@ -41,8 +41,8 @@ public class AccountServiceImpl implements AccountService {
                 account.getColor(),
                 account.getIcon(),
                 account.getType(),
-                account.getMoney().getBalance(),
-                account.getMoney().getCurrency(),
+                account.getBalance().getAmount(),
+                account.getBalance().getCurrency(),
                 account.isArchived()
         );
     }
@@ -59,8 +59,8 @@ public class AccountServiceImpl implements AccountService {
                 account.getColor(),
                 account.getIcon(),
                 account.getType(),
-                account.getMoney().getBalance(),
-                account.getMoney().getCurrency(),
+                account.getBalance().getAmount(),
+                account.getBalance().getCurrency(),
                 account.isArchived()
         );
     }
@@ -76,8 +76,8 @@ public class AccountServiceImpl implements AccountService {
                         account.getColor(),
                         account.getIcon(),
                         account.getType(),
-                        account.getMoney().getBalance(),
-                        account.getMoney().getCurrency(),
+                        account.getBalance().getAmount(),
+                        account.getBalance().getCurrency(),
                         account.isArchived()
                 ))
                 .toList();
@@ -94,8 +94,8 @@ public class AccountServiceImpl implements AccountService {
                         account.getColor(),
                         account.getIcon(),
                         account.getType(),
-                        account.getMoney().getBalance(),
-                        account.getMoney().getCurrency(),
+                        account.getBalance().getAmount(),
+                        account.getBalance().getCurrency(),
                         account.isArchived()
                 ))
                 .toList();
@@ -144,8 +144,8 @@ public class AccountServiceImpl implements AccountService {
         accountToEdit.setColor(editAccountDTO.color());
         accountToEdit.setIcon(editAccountDTO.icon());
         accountToEdit.setType(editAccountDTO.type());
-        accountToEdit.getMoney().setBalance(editAccountDTO.balance());
-        accountToEdit.getMoney().setCurrency(editAccountDTO.currency());
+        accountToEdit.getBalance().setAmount(editAccountDTO.balance());
+        accountToEdit.getBalance().setCurrency(editAccountDTO.currency());
 
         accountRepository.save(accountToEdit);
 
@@ -155,8 +155,8 @@ public class AccountServiceImpl implements AccountService {
                 accountToEdit.getColor(),
                 accountToEdit.getIcon(),
                 accountToEdit.getType(),
-                accountToEdit.getMoney().getBalance(),
-                accountToEdit.getMoney().getCurrency(),
+                accountToEdit.getBalance().getAmount(),
+                accountToEdit.getBalance().getCurrency(),
                 accountToEdit.isArchived()
         );
     }
@@ -168,7 +168,7 @@ public class AccountServiceImpl implements AccountService {
 //        Account accountToWithdraw = accountRepository.findByIdAndUserId(userId, accountId)
 //                .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
 //
-//        accountToWithdraw.getMoney().withdraw(withdrawDTO.amount());
+//        accountToWithdraw.getBalance().withdraw(withdrawDTO.amount());
 //
 //        accountRepository.save(accountToWithdraw);
 //
@@ -178,8 +178,8 @@ public class AccountServiceImpl implements AccountService {
 //                accountToWithdraw.getColor(),
 //                accountToWithdraw.getIcon(),
 //                accountToWithdraw.getType(),
-//                accountToWithdraw.getMoney().getBalance(),
-//                accountToWithdraw.getMoney().getCurrency(),
+//                accountToWithdraw.getBalance().getBalance(),
+//                accountToWithdraw.getBalance().getCurrency(),
 //                accountToWithdraw.isArchived()
 //        );
         return null;
