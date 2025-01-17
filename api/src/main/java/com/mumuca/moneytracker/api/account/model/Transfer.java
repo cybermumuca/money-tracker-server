@@ -44,7 +44,7 @@ public class Transfer {
     private Money value;
 
     @Column(name = "paid")
-    private Boolean paid;
+    private boolean paid;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recurrence_id")
