@@ -8,6 +8,9 @@ import lombok.*;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.dialect.PostgreSQLEnumJdbcType;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "accounts")
 @Getter
@@ -42,6 +45,17 @@ public class Account extends Archivable {
     })
     private Money money;
 
+    @OneToMany(mappedBy = "sourceAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Transfer> sentTransfers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "destinationAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Transfer> receivedTransfers = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+
     @Override
     public void archive() {
         super.archive();
@@ -51,8 +65,4 @@ public class Account extends Archivable {
     public void unarchive() {
         super.unarchive();
     }
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
 }
