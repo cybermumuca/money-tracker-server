@@ -11,9 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
 * Controlador para gerenciar transferências.
@@ -65,6 +63,18 @@ public class TransferController {
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
+                .body(transfer);
+    }
+
+    @GetMapping(path = "/v1/transfers/{id}")
+    public ResponseEntity<RecurrenceDTO<TransferDTO>> getTransfer(
+            @PathVariable("id") String transferId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        RecurrenceDTO<TransferDTO> transfer = transferService.getTransfer(transferId, jwt.getSubject());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
                 .body(transfer);
     }
 }

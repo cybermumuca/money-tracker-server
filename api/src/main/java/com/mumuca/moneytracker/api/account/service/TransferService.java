@@ -16,4 +16,6 @@ public interface TransferService {
             RegisterRepeatedTransferDTO registerRepeatedTransferDTO,
             String userId
     );
+
+    RecurrenceDTO<TransferDTO> getTransfer(String transferId, String userId);
 }

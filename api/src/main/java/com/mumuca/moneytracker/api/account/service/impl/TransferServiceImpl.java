@@ -24,6 +24,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 @Service
 @AllArgsConstructor
@@ -350,5 +351,71 @@ public class TransferServiceImpl implements TransferService {
 
             throw new RuntimeException("An error occurred while registering an unique transfer: ", e);
         }
+    }
+
+    @Override
+    public RecurrenceDTO<TransferDTO> getTransfer(String transferId, String userId) {
+        Recurrence recurrence = recurrenceRepository
+                .findByTransferIdAndUserId(transferId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
+
+        List<Transfer> orderedTransfers = transferRepository.findTransfersByRecurrenceId(recurrence.getId());
+
+        int transferIndex = IntStream.range(0, orderedTransfers.size())
+                .filter(i -> orderedTransfers.get(i).getId().equals(transferId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found in recurrence.")) + 1;
+
+        Transfer transfer = recurrence.getTransfers().getFirst();
+
+        Account sourceAccount = transfer.getSourceAccount();
+
+        AccountDTO sourceAccountDTO = new AccountDTO(
+                sourceAccount.getId(),
+                sourceAccount.getName(),
+                sourceAccount.getColor(),
+                sourceAccount.getIcon(),
+                sourceAccount.getType(),
+                sourceAccount.getBalance().getAmount(),
+                sourceAccount.getBalance().getCurrency(),
+                sourceAccount.isArchived()
+        );
+
+        Account destinationAccount = transfer.getDestinationAccount();
+
+        AccountDTO destinationAccountDTO = new AccountDTO(
+                destinationAccount.getId(),
+                destinationAccount.getName(),
+                destinationAccount.getColor(),
+                destinationAccount.getIcon(),
+                destinationAccount.getType(),
+                destinationAccount.getBalance().getAmount(),
+                destinationAccount.getBalance().getCurrency(),
+                destinationAccount.isArchived()
+        );
+
+        TransferDTO transferDTO = new TransferDTO(
+                transfer.getId(),
+                transfer.getTitle(),
+                transfer.getDescription(),
+                sourceAccountDTO,
+                destinationAccountDTO,
+                transfer.getValue().getAmount(),
+                transfer.getValue().getCurrency(),
+                transfer.getBillingDate(),
+                transfer.isPaid(),
+                transferIndex,
+                orderedTransfers.size(),
+                transfer.getRecurrence().getId()
+        );
+
+        return new RecurrenceDTO<TransferDTO>(
+                recurrence.getId(),
+                recurrence.getInterval(),
+                recurrence.getFirstOccurrence(),
+                recurrence.getTransactionType(),
+                recurrence.getRecurrenceType(),
+                List.of(transferDTO)
+        );
     }
 }
