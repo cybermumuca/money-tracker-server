@@ -4,14 +4,20 @@ import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
 import com.mumuca.moneytracker.api.account.dto.RegisterRepeatedTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.TransferDTO;
+import com.mumuca.moneytracker.api.account.model.Status;
 import com.mumuca.moneytracker.api.account.service.TransferService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 /**
 * Controlador para gerenciar transferências.
@@ -76,5 +82,28 @@ public class TransferController {
         return ResponseEntity
                 .status(HttpStatus.OK)
                 .body(transfer);
+    }
+
+    @GetMapping(path = "/v1/transfers")
+    public ResponseEntity<Page<RecurrenceDTO<TransferDTO>>> listTransfers(
+        @RequestParam(value = "startDate", required = false, defaultValue = "#{T(java.time.LocalDate).now()}")
+        LocalDate startDate,
+        @RequestParam(value = "endDate", required = false, defaultValue = "#{T(java.time.LocalDate).now()}")
+        LocalDate endDate,
+        @PageableDefault(sort = "billingDate", size = 20) Pageable pageable,
+        @RequestParam(value = "status", required = false, defaultValue = "ALL") Status status,
+        @AuthenticationPrincipal Jwt jwt
+    ) {
+        Page<RecurrenceDTO<TransferDTO>> transferPage = transferService.listTransfers(
+                startDate,
+                endDate,
+                pageable,
+                status,
+                jwt.getSubject()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(transferPage);
     }
 }
