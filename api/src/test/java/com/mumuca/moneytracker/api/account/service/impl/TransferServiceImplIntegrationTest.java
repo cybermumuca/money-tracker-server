@@ -126,6 +126,8 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferResult.currency()).isEqualTo(transferCurrency);
             assertThat(transferResult.billingDate()).isEqualTo(billingDate);
             assertThat(transferResult.paid()).isTrue();
+            assertThat(transferResult.installmentIndex()).isEqualTo(1);
+            assertThat(transferResult.installments()).isEqualTo(1);
             assertThat(transferResult.recurrenceId()).isEqualTo(result.id());
 
             AccountDTO sourceAccountTransferResult = transferResult.fromAccount();
@@ -277,6 +279,8 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferResult.value()).isEqualTo(amountToTransfer);
             assertThat(transferResult.currency()).isEqualTo(transferCurrency);
             assertThat(transferResult.billingDate()).isEqualTo(billingDate);
+            assertThat(transferResult.installmentIndex()).isEqualTo(1);
+            assertThat(transferResult.installments()).isEqualTo(1);
             assertThat(transferResult.paid()).isFalse();
             assertThat(transferResult.recurrenceId()).isEqualTo(result.id());
 

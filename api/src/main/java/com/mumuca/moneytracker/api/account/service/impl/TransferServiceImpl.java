@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @AllArgsConstructor
@@ -191,6 +192,8 @@ public class TransferServiceImpl implements TransferService {
                             transfer.getValue().getCurrency(),
                             transfer.getBillingDate(),
                             transfer.isPaid(),
+                            1,
+                            1,
                             transfer.getRecurrence().getId()
                     ))
             );
@@ -308,6 +311,8 @@ public class TransferServiceImpl implements TransferService {
                     destinationAccount.isArchived()
             );
 
+            AtomicInteger index = new AtomicInteger(1);
+
             return new RecurrenceDTO<TransferDTO>(
                     recurrence.getId(),
                     recurrence.getInterval(),
@@ -326,6 +331,8 @@ public class TransferServiceImpl implements TransferService {
                                     transfer.getValue().getCurrency(),
                                     transfer.getBillingDate(),
                                     transfer.isPaid(),
+                                    index.getAndIncrement(),
+                                    transfers.size(),
                                     transfer.getRecurrence().getId()
                             ))
                             .toList()

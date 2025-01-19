@@ -67,5 +67,4 @@ public class TransferController {
                 .status(HttpStatus.CREATED)
                 .body(transfer);
     }
-
 }
