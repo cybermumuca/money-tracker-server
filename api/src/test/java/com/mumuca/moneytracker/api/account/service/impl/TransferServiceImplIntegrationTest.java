@@ -4,10 +4,7 @@ import com.mumuca.moneytracker.api.account.dto.AccountDTO;
 import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
 import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.TransferDTO;
-import com.mumuca.moneytracker.api.account.model.Account;
-import com.mumuca.moneytracker.api.account.model.RecurrenceInterval;
-import com.mumuca.moneytracker.api.account.model.RecurrenceType;
-import com.mumuca.moneytracker.api.account.model.TransactionType;
+import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
 import com.mumuca.moneytracker.api.account.repository.TransferRepository;
@@ -24,18 +21,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 
-import static com.mumuca.moneytracker.api.testutil.EntityGeneratorUtil.createAccount;
-import static com.mumuca.moneytracker.api.testutil.EntityGeneratorUtil.createUser;
+import static com.mumuca.moneytracker.api.testutil.EntityGeneratorUtil.*;
 import static java.util.UUID.randomUUID;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -642,6 +640,170 @@ class TransferServiceImplIntegrationTest {
             assertThat(destinationAccountInDatabase.getBalance().getAmount()).isEqualByComparingTo(destinationAccountBalance);
             assertThat(destinationAccountInDatabase.getBalance().getCurrency()).isEqualTo(transferCurrency);
             assertThat(destinationAccountInDatabase.isArchived()).isEqualTo(true);
+        }
+    }
+
+    @Nested
+    @DisplayName("getTransfer tests")
+    class GetTransferTests {
+        @Test
+        @Transactional
+        @DisplayName("should be able to get transfer")
+        void shouldBeAbleToGetTransfer() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+
+            accountRepository.saveAll(List.of(sourceAccount, destinationAccount));
+
+
+            LocalDate today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.DAILY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .transfers(new ArrayList<>(2))
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer1 = Transfer.builder()
+                    .title("Transfer 1")
+                    .description("Transfer 1 Description")
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(100), "BRL"))
+                    .billingDate(today)
+                    .paid(true)
+                    .recurrence(recurrence)
+                    .build();
+
+            Transfer transfer2 = Transfer.builder()
+                    .title("Transfer 2")
+                    .description("Transfer 2 Description")
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(100), "BRL"))
+                    .billingDate(today.plusDays(1))
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            List<Transfer> transfers = List.of(transfer1, transfer2);
+
+            recurrence.setTransfers(transfers);
+
+            transferRepository.saveAll(transfers);
+
+            // Act
+            RecurrenceDTO<TransferDTO> result = sut.getTransfer(transfer1.getId(), user.getId());
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(recurrence.getId());
+            assertThat(result.interval()).isEqualTo(recurrence.getInterval());
+            assertThat(result.firstOccurrence()).isEqualTo(recurrence.getFirstOccurrence());
+            assertThat(result.transactionType()).isEqualTo(recurrence.getTransactionType());
+            assertThat(result.recurrenceType()).isEqualTo(recurrence.getRecurrenceType());
+            assertThat(result.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::value,
+                            TransferDTO::currency,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    )
+                    .contains(tuple(
+                            transfer1.getId(),
+                            transfer1.getTitle(),
+                            transfer1.getDescription(),
+                            transfer1.getValue().getAmount(),
+                            transfer1.getValue().getCurrency(),
+                            transfer1.getBillingDate(),
+                            transfer1.isPaid(),
+                            1,
+                            transfers.size(),
+                            recurrence.getId()
+                    ));
+
+            result.recurrences().forEach(transferDTO -> {
+                AccountDTO sourceAccountDTO = new AccountDTO(
+                        sourceAccount.getId(),
+                        sourceAccount.getName(),
+                        sourceAccount.getColor(),
+                        sourceAccount.getIcon(),
+                        sourceAccount.getType(),
+                        sourceAccount.getBalance().getAmount(),
+                        sourceAccount.getBalance().getCurrency(),
+                        sourceAccount.isArchived()
+                );
+
+                AccountDTO destinationAccountDTO = new AccountDTO(
+                        destinationAccount.getId(),
+                        destinationAccount.getName(),
+                        destinationAccount.getColor(),
+                        destinationAccount.getIcon(),
+                        destinationAccount.getType(),
+                        destinationAccount.getBalance().getAmount(),
+                        destinationAccount.getBalance().getCurrency(),
+                        destinationAccount.isArchived()
+                );
+
+                assertThat(transferDTO.fromAccount()).isEqualTo(sourceAccountDTO);
+                assertThat(transferDTO.toAccount()).isEqualTo(destinationAccountDTO);
+            });
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw ResourceNotFoundException if transfer not found")
+        void shouldThrowResourceNotFoundExceptionIfTransferNotFound() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+
+            accountRepository.saveAll(List.of(sourceAccount, destinationAccount));
+
+
+            LocalDate today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.DAILY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .transfers(new ArrayList<>(2))
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.getTransfer(randomUUID().toString(), user.getId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessage("Transfer not found.");
         }
     }
 }
