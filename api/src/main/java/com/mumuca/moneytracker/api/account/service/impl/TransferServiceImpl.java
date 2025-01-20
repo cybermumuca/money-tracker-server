@@ -699,6 +699,117 @@ public class TransferServiceImpl implements TransferService {
     }
 
     @Override
+    @Transactional
+    public RecurrenceDTO<TransferDTO> editTransfer(String transferId, EditTransferDTO editTransferDTO, String userId) {
+        Transfer transferToUpdate = transferRepository
+                .findTransferByIdAndUserId(transferId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
+
+        if (editTransferDTO.title() != null) {
+            transferToUpdate.setTitle(editTransferDTO.title());
+        }
+
+        if (editTransferDTO.description() != null) {
+            transferToUpdate.setDescription(editTransferDTO.description());
+        }
+
+        if (editTransferDTO.amount() != null) {
+            transferToUpdate.getValue().setAmount(editTransferDTO.amount());
+        }
+
+        if (editTransferDTO.currency() != null) {
+            transferToUpdate.getValue().setCurrency(editTransferDTO.currency());
+        }
+
+        if (editTransferDTO.billingDate() != null) {
+            transferToUpdate.setBillingDate(editTransferDTO.billingDate());
+        }
+
+        if (
+                editTransferDTO.fromAccount() != null &&
+                !editTransferDTO.fromAccount().equalsIgnoreCase(transferToUpdate.getSourceAccount().getId())
+        ) {
+            Account newSourceAccount = accountRepository
+                    .findByIdAndUserId(editTransferDTO.fromAccount(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Source Account not found."));
+
+            transferToUpdate.setSourceAccount(newSourceAccount);
+        }
+
+        if (
+                editTransferDTO.toAccount() != null &&
+                !editTransferDTO.toAccount().equalsIgnoreCase(transferToUpdate.getDestinationAccount().getId())
+        ) {
+            Account newDestinationAccount = accountRepository
+                    .findByIdAndUserId(editTransferDTO.toAccount(), userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Destination Account not found."));
+
+            transferToUpdate.setDestinationAccount(newDestinationAccount);
+        }
+
+        transferRepository.save(transferToUpdate);
+
+        Recurrence recurrence = transferToUpdate.getRecurrence();
+
+        int transferInstallments = 1;
+
+        if (recurrence.getRecurrenceType() != RecurrenceType.UNIQUE) {
+            transferInstallments = transferRepository.countTransfersByRecurrenceId(recurrence.getId());
+        }
+
+        Account sourceAccount = transferToUpdate.getSourceAccount();
+
+        AccountDTO sourceAccountDTO = new AccountDTO(
+                sourceAccount.getId(),
+                sourceAccount.getName(),
+                sourceAccount.getColor(),
+                sourceAccount.getIcon(),
+                sourceAccount.getType(),
+                sourceAccount.getBalance().getAmount(),
+                sourceAccount.getBalance().getCurrency(),
+                sourceAccount.isArchived()
+        );
+
+        Account destinationAccount = transferToUpdate.getDestinationAccount();
+
+        AccountDTO destinationAccountDTO = new AccountDTO(
+                destinationAccount.getId(),
+                destinationAccount.getName(),
+                destinationAccount.getColor(),
+                destinationAccount.getIcon(),
+                destinationAccount.getType(),
+                destinationAccount.getBalance().getAmount(),
+                destinationAccount.getBalance().getCurrency(),
+                destinationAccount.isArchived()
+        );
+
+        TransferDTO transferDTO = new TransferDTO(
+                transferToUpdate.getId(),
+                transferToUpdate.getTitle(),
+                transferToUpdate.getDescription(),
+                sourceAccountDTO,
+                destinationAccountDTO,
+                transferToUpdate.getValue().getAmount(),
+                transferToUpdate.getValue().getCurrency(),
+                transferToUpdate.getBillingDate(),
+                transferToUpdate.isPaid(),
+                transferToUpdate.getPaid(),
+                transferToUpdate.getInstallmentIndex(),
+                transferInstallments,
+                transferToUpdate.getRecurrence().getId()
+        );
+
+        return new RecurrenceDTO<TransferDTO>(
+                recurrence.getId(),
+                recurrence.getInterval(),
+                recurrence.getFirstOccurrence(),
+                recurrence.getTransactionType(),
+                recurrence.getRecurrenceType(),
+                List.of(transferDTO)
+        );
+    }
+
+    @Override
     public void deleteTransfer(String transferId, String userId) {
         Transfer transferToDelete = transferRepository
                 .findTransferByIdAndUserId(transferId, userId)

@@ -126,6 +126,23 @@ public class TransferController {
                 .body(transfer);
     }
 
+    @PutMapping(path = "/v1/transfers/{id}")
+    public ResponseEntity<RecurrenceDTO<TransferDTO>> editTransfer(
+            @PathVariable("id") String transferId,
+            @Valid @RequestBody EditTransferDTO editTransferDTO,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        RecurrenceDTO<TransferDTO> transfer = transferService.editTransfer(
+                transferId,
+                editTransferDTO,
+                jwt.getSubject()
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(transfer);
+    }
+
     @DeleteMapping(path = "/v1/transfers/{id}")
     public ResponseEntity<Void> deleteTransfer(
             @PathVariable("id") String transferId,
