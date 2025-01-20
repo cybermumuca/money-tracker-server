@@ -512,11 +512,9 @@ public class TransferServiceImpl implements TransferService {
     public RecurrenceDTO<TransferDTO> payTransfer(String transferId, PayTransferDTO payTransferDTO, String userId) {
         String accountId = payTransferDTO.accountId();
 
-        Recurrence recurrence = recurrenceRepository
-                .findByTransferIdAndUserId(transferId, userId)
+        Transfer transferToPay = transferRepository
+                .findTransferWithRecurrenceByIdAndUserId(transferId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
-
-        Transfer transferToPay = recurrence.getTransfers().getFirst();
 
         Account accountToBePaid = transferToPay.getDestinationAccount();
 
@@ -578,6 +576,8 @@ public class TransferServiceImpl implements TransferService {
                 accountToBePaid.getBalance().getCurrency(),
                 accountToBePaid.isArchived()
         );
+
+        Recurrence recurrence = transferToPay.getRecurrence();
 
         int installmentsNumber = 1;
 
