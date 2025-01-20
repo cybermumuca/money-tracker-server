@@ -1,5 +1,6 @@
 package com.mumuca.moneytracker.api.account.model;
 
+import com.mumuca.moneytracker.api.audit.BaseAuditableEntity;
 import com.mumuca.moneytracker.api.auth.model.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -16,7 +17,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Recurrence {
+public class Recurrence extends BaseAuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")

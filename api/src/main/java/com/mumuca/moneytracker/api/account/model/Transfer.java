@@ -1,5 +1,6 @@
 package com.mumuca.moneytracker.api.account.model;
 
+import com.mumuca.moneytracker.api.audit.BaseAuditableEntity;
 import com.mumuca.moneytracker.api.model.Money;
 import jakarta.persistence.*;
 import lombok.*;
@@ -13,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class Transfer {
+public class Transfer extends BaseAuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id")

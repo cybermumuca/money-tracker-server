@@ -1,6 +1,7 @@
 package com.mumuca.moneytracker.api.auth.model;
 
 import com.mumuca.moneytracker.api.account.model.Account;
+import com.mumuca.moneytracker.api.audit.BaseAuditableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -21,7 +22,7 @@ import java.time.Period;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class User {
+public class User extends BaseAuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -59,14 +60,6 @@ public class User {
 
     @Column(name = "photoUrl")
     private String photoUrl;
-
-    @CreatedDate
-    @Column(name = "created_date")
-    private Instant createdDate = Instant.now();
-
-    @LastModifiedDate
-    @Column(name = "last_modified_date")
-    private Instant lastModifiedDate = Instant.now();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Account> accounts = new ArrayList<>();
