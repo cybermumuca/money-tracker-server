@@ -4,6 +4,8 @@ import com.mumuca.moneytracker.api.account.dto.AccountDTO;
 import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
 import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
 import com.mumuca.moneytracker.api.account.dto.TransferDTO;
+import com.mumuca.moneytracker.api.account.exception.InvalidTransferDestinationException;
+import com.mumuca.moneytracker.api.account.exception.TransferAlreadyPaidException;
 import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
@@ -1223,6 +1225,391 @@ class TransferServiceImplIntegrationTest {
                             transfers2.size(),
                             transferE.getRecurrence().getId()
                     ));
+        }
+    }
+
+
+    @Nested
+    @DisplayName("payTransfer tests")
+    class PayTransferTests {
+
+        @Test
+        @Transactional
+        @DisplayName("should pay an existing transfer successfully when no custom source account is provided")
+        void shouldPayExistingTransferSuccessfullyWithoutCustomSourceAccount() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setBalance(new Money(BigDecimal.valueOf(1000), "BRL"));
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setBalance(new Money(BigDecimal.valueOf(0), "BRL"));
+            destinationAccount.setUser(user);
+
+            List<Account> accounts = List.of(sourceAccount, destinationAccount);
+            accountRepository.saveAll(accounts);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .transfers(new ArrayList<>())
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer = Transfer.builder()
+                    .title("Payable Transfer")
+                    .description("Transfer to be paid")
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(1000), "BRL"))
+                    .billingDate(today)
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act
+            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), null, user.getId());
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(recurrence.getId());
+            assertThat(result.interval()).isEqualTo(recurrence.getInterval());
+            assertThat(result.firstOccurrence()).isEqualTo(recurrence.getFirstOccurrence());
+            assertThat(result.transactionType()).isEqualTo(recurrence.getTransactionType());
+            assertThat(result.recurrenceType()).isEqualTo(recurrence.getRecurrenceType());
+            assertThat(result.recurrences()).hasSize(1);
+
+            TransferDTO resultTransfer = result.recurrences().getFirst();
+
+            assertThat(resultTransfer.id()).isEqualTo(transfer.getId());
+            assertThat(resultTransfer.title()).isEqualTo(transfer.getTitle());
+            assertThat(resultTransfer.description()).isEqualTo(transfer.getDescription());
+            assertThat(resultTransfer.billingDate()).isEqualTo(transfer.getBillingDate());
+            assertThat(resultTransfer.value()).isEqualTo(transfer.getValue().getAmount());
+            assertThat(resultTransfer.currency()).isEqualTo(transfer.getValue().getCurrency());
+            assertThat(resultTransfer.installmentIndex()).isEqualTo(transfer.getInstallmentIndex());
+            assertThat(resultTransfer.installments()).isEqualTo(1);
+            assertThat(resultTransfer.recurrenceId()).isEqualTo(recurrence.getId());
+            assertThat(resultTransfer.paid()).isTrue();
+            assertThat(resultTransfer.fromAccount().id()).isEqualTo(sourceAccount.getId());
+            assertThat(resultTransfer.toAccount().id()).isEqualTo(destinationAccount.getId());
+            assertThat(resultTransfer.fromAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(0));
+            assertThat(resultTransfer.toAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+            var sourceAccountInDatabase = accountRepository.findById(sourceAccount.getId()).orElseThrow();
+
+            assertThat(sourceAccountInDatabase.getBalance().getAmount()).isEqualTo(BigDecimal.valueOf(0));
+
+            var destinationAccountInDatabase = accountRepository.findById(destinationAccount.getId()).orElseThrow();
+
+            assertThat(destinationAccountInDatabase.getBalance().getAmount()).isEqualTo(BigDecimal.valueOf(1000));
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should pay an existing transfer successfully when a different source account is provided")
+        void shouldPayExistingTransferWithDifferentSourceAccount() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setBalance(new Money(BigDecimal.valueOf(1000), "BRL"));
+            sourceAccount.setUser(user);
+
+            Account differentSourceAccount = createAccount();
+            differentSourceAccount.setBalance(new Money(BigDecimal.valueOf(1000), "BRL"));
+            differentSourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setBalance(new Money(BigDecimal.valueOf(0), "BRL"));
+            destinationAccount.setUser(user);
+
+            List<Account> accounts = List.of(sourceAccount, differentSourceAccount, destinationAccount);
+
+            accountRepository.saveAll(accounts);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .transfers(new ArrayList<>())
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer = Transfer.builder()
+                    .title("Payable Transfer with Different Source Account")
+                    .description("Transfer to be paid from a different account")
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(1000), "BRL"))
+                    .billingDate(today)
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act
+            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), differentSourceAccount.getId(), user.getId());
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.id()).isEqualTo(recurrence.getId());
+            assertThat(result.interval()).isEqualTo(recurrence.getInterval());
+            assertThat(result.firstOccurrence()).isEqualTo(recurrence.getFirstOccurrence());
+            assertThat(result.transactionType()).isEqualTo(recurrence.getTransactionType());
+            assertThat(result.recurrenceType()).isEqualTo(recurrence.getRecurrenceType());
+            assertThat(result.recurrences()).hasSize(1);
+
+            TransferDTO resultTransfer = result.recurrences().getFirst();
+
+            assertThat(resultTransfer.id()).isEqualTo(transfer.getId());
+            assertThat(resultTransfer.title()).isEqualTo(transfer.getTitle());
+            assertThat(resultTransfer.description()).isEqualTo(transfer.getDescription());
+            assertThat(resultTransfer.billingDate()).isEqualTo(transfer.getBillingDate());
+            assertThat(resultTransfer.value()).isEqualTo(transfer.getValue().getAmount());
+            assertThat(resultTransfer.currency()).isEqualTo(transfer.getValue().getCurrency());
+            assertThat(resultTransfer.installmentIndex()).isEqualTo(transfer.getInstallmentIndex());
+            assertThat(resultTransfer.installments()).isEqualTo(1);
+            assertThat(resultTransfer.recurrenceId()).isEqualTo(recurrence.getId());
+            assertThat(resultTransfer.paid()).isTrue();
+            assertThat(resultTransfer.fromAccount().id()).isEqualTo(differentSourceAccount.getId());
+            assertThat(resultTransfer.toAccount().id()).isEqualTo(destinationAccount.getId());
+            assertThat(resultTransfer.fromAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(0));
+            assertThat(resultTransfer.toAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(1000));
+
+            var sourceAccountInDatabase = accountRepository.findById(sourceAccount.getId()).orElseThrow();
+
+            assertThat(sourceAccountInDatabase.getBalance().getAmount()).isEqualTo(BigDecimal.valueOf(1000));
+
+            var differentSourceAccountInDatabase = accountRepository.findById(differentSourceAccount.getId()).orElseThrow();
+
+            assertThat(differentSourceAccountInDatabase.getBalance().getAmount()).isEqualTo(BigDecimal.valueOf(0));
+
+            var destinationAccountInDatabase = accountRepository.findById(destinationAccount.getId()).orElseThrow();
+
+            assertThat(destinationAccountInDatabase.getBalance().getAmount()).isEqualTo(BigDecimal.valueOf(1000));
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw ResourceNotFoundException if the transfer does not exist")
+        void shouldThrowResourceNotFoundExceptionIfTransferDoesNotExist() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.payTransfer(randomUUID().toString(), null, user.getId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessage("Transfer not found.");
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw TransferAlreadyPaidException if the transfer is already paid")
+        void shouldThrowTransferAlreadyPaidExceptionIfTransferIsAlreadyPaid() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+
+            List<Account> accounts = List.of(sourceAccount, destinationAccount);
+
+            accountRepository.saveAll(accounts);
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(LocalDate.now())
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .user(user)
+                    .build();
+
+
+            recurrenceRepository.save(recurrence);
+
+            var today = LocalDate.now();
+
+            Transfer transfer = Transfer.builder()
+                    .title("Already Paid Transfer")
+                    .description("This transfer is already paid")
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.TEN, "BRL"))
+                    .billingDate(today)
+                    .paid(true)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+                    .isInstanceOf(TransferAlreadyPaidException.class);
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw ResourceNotFoundException if a custom source accountId does not exist in the database")
+        void shouldThrowResourceNotFoundExceptionIfCustomAccountIdNotFound() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+
+            accountRepository.save(destinationAccount);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer = Transfer.builder()
+                    .title("Transfer with non-existent custom account")
+                    .description("Trying to pay using an invalid accountId")
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(500), "BRL"))
+                    .billingDate(LocalDate.now())
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), randomUUID().toString(), user.getId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessage("Account not found.");
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw ResourceIsArchivedException if the source account (after choosing or default) is archived")
+        void shouldThrowResourceIsArchivedExceptionIfSourceAccountIsArchived() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account archivedSourceAccount = createAccount();
+            archivedSourceAccount.setUser(user);
+            archivedSourceAccount.archive();
+            accountRepository.save(archivedSourceAccount);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+            accountRepository.save(destinationAccount);
+
+            List<Account> accounts = List.of(archivedSourceAccount, destinationAccount);
+            accountRepository.saveAll(accounts);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer = Transfer.builder()
+                    .title("Transfer to pay from archived source")
+                    .description("Source account is archived, cannot pay")
+                    .sourceAccount(archivedSourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(100), "BRL"))
+                    .billingDate(today)
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+                    .isInstanceOf(ResourceIsArchivedException.class)
+                    .hasMessage("Unable to pay transfer if source account is archived.");
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw InvalidTransferDestinationException if the destination account is null")
+        void shouldThrowInvalidTransferDestinationExceptionIfDestinationAccountIsNull() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+            accountRepository.save(sourceAccount);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.UNIQUE)
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transfer = Transfer.builder()
+                    .title("Transfer with null destination")
+                    .description("Invalid transfer because destination is null")
+                    .sourceAccount(sourceAccount)
+                    .value(new Money(BigDecimal.valueOf(100), "BRL"))
+                    .billingDate(today)
+                    .paid(false)
+                    .recurrence(recurrence)
+                    .build();
+
+            recurrence.setTransfers(List.of(transfer));
+            transferRepository.save(transfer);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+                    .isInstanceOf(InvalidTransferDestinationException.class);
         }
     }
 }
