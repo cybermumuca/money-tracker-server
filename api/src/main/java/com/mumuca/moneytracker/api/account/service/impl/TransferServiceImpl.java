@@ -706,4 +706,13 @@ public class TransferServiceImpl implements TransferService {
 
         transferRepository.deleteById(transferToDelete.getId());
     }
+
+    @Override
+    @Transactional
+    public void deleteFutureTransfers(String recurrenceId, Integer installmentIndex, String userId) {
+        recurrenceRepository.findByIdAndUserIdWithTransfers(recurrenceId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recurrence not found."));
+
+        transferRepository.deleteByRecurrenceIdAndInstallmentIndexGreaterThanEqual(recurrenceId, installmentIndex);
+    }
 }

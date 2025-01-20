@@ -34,4 +34,6 @@ public interface TransferService {
     RecurrenceDTO<TransferDTO> unpayTransfer(String transferId, String userId);
 
     void deleteTransfer(String transferId, String userId);
+
+    void deleteFutureTransfers(String recurrenceId, Integer installmentIndex, String userId);
 }

@@ -37,4 +37,6 @@ public interface TransferRepository extends JpaRepository<Transfer, String>, Jpa
         WHERE t.id = :transferId AND t.recurrence.user.id = :userId
     """)
     Optional<Transfer> findTransferWithRecurrenceByIdAndUserId(@Param("transferId") String transferId, @Param("userId") String userId);
+
+    void deleteByRecurrenceIdAndInstallmentIndexGreaterThanEqual(String recurrenceId, Integer installmentIndex);
 }

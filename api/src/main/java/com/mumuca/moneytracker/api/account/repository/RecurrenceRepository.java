@@ -13,10 +13,10 @@ public interface RecurrenceRepository extends JpaRepository<Recurrence, String> 
     @Query("""
         SELECT r FROM Recurrence r
         JOIN FETCH r.transfers t
-        WHERE t.id = :transferId AND r.user.id = :userId
+        WHERE r.id = :recurrenceId AND r.user.id = :userId
     """)
-    Optional<Recurrence> findByTransferIdAndUserId(
-            @Param("transferId") String transferId,
+    Optional<Recurrence> findByIdAndUserIdWithTransfers(
+            @Param("recurrenceId") String recurrenceId,
             @Param("userId") String userId
     );
 }

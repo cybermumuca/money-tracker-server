@@ -16,27 +16,24 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 
-/**
-* Controlador para gerenciar transferências.
-* <p>
-* Funcionalidades:
-* <ul>
-* <li>Registrar uma transferência única;</li>
-* <li>Registrar uma transferência repetida;</li>
-* <li>Registrar uma transferência parcelada;</li>
-* <li>Editar uma transferência (única, parcelada ou repetida);</li>
-* <li>Editar futuras transferências repetidas;</li>
-* <li>Editar futuras transferências parceladas;</li>
-* <li>Editar todas as recorrências de transferências repetidas;</li>
-* <li>Pegar transferência;</li>
-* <li>Listar transferências;</li>
-* <li>Pagar transferência;</li>
-* <li>"Despagar" transferência;</li>
-* <li>Deletar transferência (única, parcelada ou repetida);</li>
-* <li>Deletar transferências futuras;</li>
-* <li>Pesquisar transferências;</li>
-* </ul>
-*/
+/// Controlador para gerenciar transferências.
+///
+/// Funcionalidades:
+///
+/// - Registrar uma transferência única; ✅
+/// - Registrar uma transferência repetida; ✅
+/// - Registrar uma transferência parcelada;
+/// - Pegar transferência; ✅
+/// - Listar transferências; ✅
+/// - Pesquisar transferências;
+/// - Pagar transferência; ✅
+/// - "Despagar" transferência; ✅
+/// - Editar uma transferência (única, parcelada ou repetida);
+/// - Editar futuras transferências repetidas;
+/// - Editar futuras transferências parceladas;
+/// - Editar todas as recorrências de transferências repetidas;
+/// - Deletar transferência (única, parcelada ou repetida); ✅
+///
 @RestController
 @AllArgsConstructor
 public class TransferController {
@@ -118,7 +115,7 @@ public class TransferController {
     }
 
     @PatchMapping(path = "/v1/transfers/{id}/unpay")
-    public ResponseEntity<RecurrenceDTO<TransferDTO>> payTransfer(
+    public ResponseEntity<RecurrenceDTO<TransferDTO>> unpayTransfer(
             @PathVariable("id") String transferId,
             @AuthenticationPrincipal Jwt jwt
     ) {
