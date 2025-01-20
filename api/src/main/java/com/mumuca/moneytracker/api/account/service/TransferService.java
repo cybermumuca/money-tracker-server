@@ -30,4 +30,6 @@ public interface TransferService {
     );
 
     RecurrenceDTO<TransferDTO> payTransfer(String transferId, PayTransferDTO payTransferDTO, String userId);
+
+    RecurrenceDTO<TransferDTO> unpayTransfer(String transferId, String userId);
 }

@@ -4,6 +4,7 @@ import com.mumuca.moneytracker.api.account.controller.TransferController;
 import com.mumuca.moneytracker.api.account.exception.InvalidTransferDestinationException;
 import com.mumuca.moneytracker.api.account.exception.InvalidTransferSourceException;
 import com.mumuca.moneytracker.api.account.exception.TransferAlreadyPaidException;
+import com.mumuca.moneytracker.api.account.exception.TransferNotPaidYetException;
 import com.mumuca.moneytracker.api.exception.dto.APIErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,15 @@ public class TransferControllerExceptionHandler {
         return buildErrorResponse(
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "Transfer Already Paid",
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(TransferNotPaidYetException.class)
+    public ResponseEntity<APIErrorResponse<String>> handleTransferNotPaidYetException(final TransferNotPaidYetException ex) {
+        return buildErrorResponse(
+                HttpStatus.UNPROCESSABLE_ENTITY,
+                "Transfer Not Paid Yet",
                 ex.getMessage()
         );
     }

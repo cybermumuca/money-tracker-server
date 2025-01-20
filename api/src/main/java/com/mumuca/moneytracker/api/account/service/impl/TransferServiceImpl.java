@@ -4,6 +4,7 @@ import com.mumuca.moneytracker.api.account.dto.*;
 import com.mumuca.moneytracker.api.account.exception.InvalidTransferDestinationException;
 import com.mumuca.moneytracker.api.account.exception.InvalidTransferSourceException;
 import com.mumuca.moneytracker.api.account.exception.TransferAlreadyPaidException;
+import com.mumuca.moneytracker.api.account.exception.TransferNotPaidYetException;
 import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
@@ -599,6 +600,93 @@ public class TransferServiceImpl implements TransferService {
                 transferToPay.getInstallmentIndex(),
                 installmentsNumber,
                 transferToPay.getRecurrence().getId()
+        );
+
+        return new RecurrenceDTO<TransferDTO>(
+                recurrence.getId(),
+                recurrence.getInterval(),
+                recurrence.getFirstOccurrence(),
+                recurrence.getTransactionType(),
+                recurrence.getRecurrenceType(),
+                List.of(transferDTO)
+        );
+    }
+
+    @Override
+    @Transactional
+    public RecurrenceDTO<TransferDTO> unpayTransfer(String transferId, String userId) {
+        Recurrence recurrence = recurrenceRepository
+                .findByTransferIdAndUserId(transferId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
+
+        Transfer transferToUnpay = recurrence.getTransfers().getFirst();
+
+        if (!transferToUnpay.isPaid()) {
+            throw new TransferNotPaidYetException();
+        }
+
+        var accountToDeposit = transferToUnpay.getSourceAccount();
+
+        if (accountToDeposit == null) {
+            throw new InvalidTransferSourceException("Transfer Source Account not found.");
+        }
+
+        Account accountToWithdraw = transferToUnpay.getDestinationAccount();
+
+        if (accountToWithdraw == null) {
+            throw new InvalidTransferDestinationException("Transfer Destination Account not found.");
+        }
+
+        handleCurrencyConversions(transferToUnpay, accountToWithdraw, accountToDeposit);
+
+        transferToUnpay.setPaid(null);
+
+        transferRepository.save(transferToUnpay);
+
+        accountRepository.saveAll(List.of(accountToWithdraw, accountToDeposit));
+
+        AccountDTO sourceAccountDTO = new AccountDTO(
+                accountToDeposit.getId(),
+                accountToDeposit.getName(),
+                accountToDeposit.getColor(),
+                accountToDeposit.getIcon(),
+                accountToDeposit.getType(),
+                accountToDeposit.getBalance().getAmount(),
+                accountToDeposit.getBalance().getCurrency(),
+                accountToDeposit.isArchived()
+        );
+
+        AccountDTO destinationAccountDTO = new AccountDTO(
+                accountToWithdraw.getId(),
+                accountToWithdraw.getName(),
+                accountToWithdraw.getColor(),
+                accountToWithdraw.getIcon(),
+                accountToWithdraw.getType(),
+                accountToWithdraw.getBalance().getAmount(),
+                accountToWithdraw.getBalance().getCurrency(),
+                accountToWithdraw.isArchived()
+        );
+
+        int installmentsNumber = 1;
+
+        if (recurrence.getRecurrenceType() != RecurrenceType.UNIQUE) {
+            installmentsNumber = transferRepository.countTransfersByRecurrenceId(recurrence.getId());
+        }
+
+        TransferDTO transferDTO = new TransferDTO(
+                transferToUnpay.getId(),
+                transferToUnpay.getTitle(),
+                transferToUnpay.getDescription(),
+                sourceAccountDTO,
+                destinationAccountDTO,
+                transferToUnpay.getValue().getAmount(),
+                transferToUnpay.getValue().getCurrency(),
+                transferToUnpay.getBillingDate(),
+                transferToUnpay.isPaid(),
+                transferToUnpay.getPaid(),
+                transferToUnpay.getInstallmentIndex(),
+                installmentsNumber,
+                transferToUnpay.getRecurrence().getId()
         );
 
         return new RecurrenceDTO<TransferDTO>(

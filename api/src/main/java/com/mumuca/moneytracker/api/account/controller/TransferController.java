@@ -116,4 +116,16 @@ public class TransferController {
                 .status(HttpStatus.OK)
                 .body(transfer);
     }
+
+    @PatchMapping(path = "/v1/transfers/{id}/unpay")
+    public ResponseEntity<RecurrenceDTO<TransferDTO>> payTransfer(
+            @PathVariable("id") String transferId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        RecurrenceDTO<TransferDTO> transfer = transferService.unpayTransfer(transferId, jwt.getSubject());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(transfer);
+    }
 }
