@@ -672,7 +672,6 @@ class TransferServiceImplIntegrationTest {
             User user = createUser();
             userRepository.save(user);
 
-
             Account sourceAccount = createAccount();
             sourceAccount.setUser(user);
 
@@ -681,12 +680,11 @@ class TransferServiceImplIntegrationTest {
 
             accountRepository.saveAll(List.of(sourceAccount, destinationAccount));
 
-
             LocalDate today = LocalDate.now();
 
             Recurrence recurrence = Recurrence.builder()
                     .firstOccurrence(today)
-                    .interval(RecurrenceInterval.DAILY)
+                    .interval(RecurrenceInterval.MONTHLY)
                     .transactionType(TransactionType.TRANSFER)
                     .recurrenceType(RecurrenceType.REPEATED)
                     .transfers(new ArrayList<>(2))
@@ -703,6 +701,7 @@ class TransferServiceImplIntegrationTest {
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
                     .billingDate(today)
                     .paid(today)
+                    .installmentIndex(1)
                     .recurrence(recurrence)
                     .build();
 
@@ -712,8 +711,9 @@ class TransferServiceImplIntegrationTest {
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
-                    .billingDate(today.plusDays(1))
+                    .billingDate(today.plusMonths(1))
                     .paid(null)
+                    .installmentIndex(2)
                     .recurrence(recurrence)
                     .build();
 

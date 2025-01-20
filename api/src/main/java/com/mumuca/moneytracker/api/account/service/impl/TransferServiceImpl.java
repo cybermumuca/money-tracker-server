@@ -34,7 +34,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.IntStream;
 
 @Service
 @AllArgsConstructor
@@ -368,19 +367,19 @@ public class TransferServiceImpl implements TransferService {
     }
 
     @Override
+    @Transactional
     public RecurrenceDTO<TransferDTO> getTransfer(String transferId, String userId) {
-        Recurrence recurrence = recurrenceRepository
-                .findByTransferIdAndUserId(transferId, userId)
+        Transfer transfer = transferRepository
+                .findTransferWithRecurrenceByIdAndUserId(transferId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
 
-        List<Transfer> orderedTransfers = transferRepository.findTransfersByRecurrenceId(recurrence.getId());
+        Recurrence recurrence = transfer.getRecurrence();
 
-        int transferIndex = IntStream.range(0, orderedTransfers.size())
-                .filter(i -> orderedTransfers.get(i).getId().equals(transferId))
-                .findFirst()
-                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found in recurrence.")) + 1;
+        int transferInstallments = 1;
 
-        Transfer transfer = recurrence.getTransfers().getFirst();
+        if (recurrence.getRecurrenceType() != RecurrenceType.UNIQUE) {
+            transferInstallments = transferRepository.countTransfersByRecurrenceId(recurrence.getId());
+        }
 
         Account sourceAccount = transfer.getSourceAccount();
 
@@ -419,8 +418,8 @@ public class TransferServiceImpl implements TransferService {
                 transfer.getBillingDate(),
                 transfer.isPaid(),
                 transfer.getPaid(),
-                transferIndex,
-                orderedTransfers.size(),
+                transfer.getInstallmentIndex(),
+                transferInstallments,
                 transfer.getRecurrence().getId()
         );
 
