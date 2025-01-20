@@ -1989,4 +1989,112 @@ class TransferServiceImplIntegrationTest {
                     .hasMessageContaining("Transfer not found.");
         }
     }
+
+    @Nested
+    @DisplayName("deleteFutureTransfers tests")
+    class DeleteFutureTransfersTests {
+        @Test
+        @Transactional
+        @DisplayName("should be able to delete future transfers")
+        void shouldBeAbleToDeleteFutureTransfers() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setBalance(new Money(BigDecimal.valueOf(1000), "BRL"));
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setBalance(new Money(BigDecimal.valueOf(0), "BRL"));
+            destinationAccount.setUser(user);
+
+            List<Account> accounts = List.of(sourceAccount, destinationAccount);
+            accountRepository.saveAll(accounts);
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.MONTHLY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .user(user)
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            Transfer transferA = Transfer.builder()
+                    .title("Transfer A")
+                    .billingDate(today.plusMonths(1))
+                    .paid(null)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(15), "BRL"))
+                    .installmentIndex(1)
+                    .recurrence(recurrence)
+                    .build();
+
+            Transfer transferB = Transfer.builder()
+                    .title("Transfer B")
+                    .billingDate(today.plusMonths(2))
+                    .paid(today)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(25), "BRL"))
+                    .installmentIndex(2)
+                    .recurrence(recurrence)
+                    .build();
+
+            Transfer transferC = Transfer.builder()
+                    .title("Transfer C")
+                    .billingDate(today.plusMonths(3))
+                    .paid(null)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(35), "BRL"))
+                    .installmentIndex(3)
+                    .recurrence(recurrence)
+                    .build();
+
+            Transfer transferD = Transfer.builder()
+                    .title("Transfer D")
+                    .billingDate(today.plusMonths(4))
+                    .paid(null)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(45), "BRL"))
+                    .installmentIndex(4)
+                    .recurrence(recurrence)
+                    .build();
+
+            List<Transfer> transfers = List.of(transferA, transferB, transferC, transferD);
+
+            recurrence.setTransfers(transfers);
+            transferRepository.saveAll(transfers);
+
+            // Act
+            sut.deleteFutureTransfers(recurrence.getId(), 3, user.getId());
+
+            // Assert
+            assertThat(transferRepository.findById(transferA.getId())).isPresent();
+            assertThat(transferRepository.findById(transferB.getId())).isPresent();
+            assertThat(transferRepository.findById(transferC.getId())).isEmpty();
+            assertThat(transferRepository.findById(transferD.getId())).isEmpty();
+        }
+
+        @Test
+        @Transactional
+        @DisplayName("should throw ResourceNotFoundException if Recurrence not found")
+        void shouldThrowResourceNotFoundExceptionIfRecurrenceNotFound() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            // Act & Assert
+            assertThatThrownBy(() -> sut.deleteFutureTransfers(randomUUID().toString(), 3, user.getId()))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Recurrence not found.");
+        }
+    }
 }
