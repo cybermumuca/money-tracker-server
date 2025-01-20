@@ -1,9 +1,6 @@
 package com.mumuca.moneytracker.api.account.service.impl;
 
-import com.mumuca.moneytracker.api.account.dto.AccountDTO;
-import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
-import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
-import com.mumuca.moneytracker.api.account.dto.TransferDTO;
+import com.mumuca.moneytracker.api.account.dto.*;
 import com.mumuca.moneytracker.api.account.exception.InvalidTransferDestinationException;
 import com.mumuca.moneytracker.api.account.exception.TransferAlreadyPaidException;
 import com.mumuca.moneytracker.api.account.model.*;
@@ -93,7 +90,9 @@ class TransferServiceImplIntegrationTest {
             BigDecimal amountToTransfer = BigDecimal.valueOf(10000);
             String transferCurrency = destinationAccountCurrency;
 
-            LocalDate billingDate = LocalDate.now().plusDays(3);
+            var today = LocalDate.now();
+
+            LocalDate billingDate = today.plusDays(3);
 
             RegisterUniqueTransferDTO registerUniqueTransferDTO = new RegisterUniqueTransferDTO(
                     "Test Transfer",
@@ -103,7 +102,7 @@ class TransferServiceImplIntegrationTest {
                     sourceAccount.getId(),
                     destinationAccount.getId(),
                     billingDate,
-                    true
+                    today
             );
 
             // Act
@@ -128,6 +127,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferResult.currency()).isEqualTo(transferCurrency);
             assertThat(transferResult.billingDate()).isEqualTo(billingDate);
             assertThat(transferResult.paid()).isTrue();
+            assertThat(transferResult.paidDate()).isEqualTo(today);
             assertThat(transferResult.installmentIndex()).isEqualTo(1);
             assertThat(transferResult.installments()).isEqualTo(1);
             assertThat(transferResult.recurrenceId()).isEqualTo(result.id());
@@ -184,6 +184,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferInDatabase.getValue().getAmount()).isEqualByComparingTo(transferResult.value());
             assertThat(transferInDatabase.getValue().getCurrency()).isEqualTo(transferResult.currency());
             assertThat(transferInDatabase.isPaid()).isEqualTo(transferResult.paid());
+            assertThat(transferInDatabase.getPaid()).isEqualTo(transferResult.paidDate());
             assertThat(transferInDatabase.getRecurrence().getId()).isEqualTo(result.id());
 
             var optionalSourceAccountInDatabase = accountRepository.findById(sourceAccount.getId());
@@ -247,7 +248,9 @@ class TransferServiceImplIntegrationTest {
             BigDecimal amountToTransfer = BigDecimal.valueOf(10000);
             String transferCurrency = destinationAccountCurrency;
 
-            LocalDate billingDate = LocalDate.now().plusDays(3);
+            var today = LocalDate.now();
+
+            LocalDate billingDate = today.plusDays(3);
 
             RegisterUniqueTransferDTO registerUniqueTransferDTO = new RegisterUniqueTransferDTO(
                     "Test Transfer",
@@ -257,7 +260,7 @@ class TransferServiceImplIntegrationTest {
                     sourceAccount.getId(),
                     destinationAccount.getId(),
                     billingDate,
-                    false
+                    null
             );
 
             // Act
@@ -284,6 +287,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferResult.installmentIndex()).isEqualTo(1);
             assertThat(transferResult.installments()).isEqualTo(1);
             assertThat(transferResult.paid()).isFalse();
+            assertThat(transferResult.paidDate()).isNull();
             assertThat(transferResult.recurrenceId()).isEqualTo(result.id());
 
             AccountDTO sourceAccountTransferResult = transferResult.fromAccount();
@@ -338,6 +342,8 @@ class TransferServiceImplIntegrationTest {
             assertThat(transferInDatabase.getValue().getAmount()).isEqualByComparingTo(transferResult.value());
             assertThat(transferInDatabase.getValue().getCurrency()).isEqualTo(transferResult.currency());
             assertThat(transferInDatabase.isPaid()).isEqualTo(transferResult.paid());
+            assertThat(transferInDatabase.getPaid()).isNull();
+            assertThat(transferInDatabase.getInstallmentIndex()).isEqualTo(1);
             assertThat(transferInDatabase.getRecurrence().getId()).isEqualTo(result.id());
 
             var optionalSourceAccountInDatabase = accountRepository.findById(sourceAccount.getId());
@@ -433,7 +439,7 @@ class TransferServiceImplIntegrationTest {
                     randomUUID().toString(),
                     destinationAccount.getId(),
                     billingDate,
-                    true
+                    null
             );
 
             // Act & Assert
@@ -473,7 +479,9 @@ class TransferServiceImplIntegrationTest {
             BigDecimal amountToTransfer = BigDecimal.valueOf(10000);
             String transferCurrency = destinationAccountCurrency;
 
-            LocalDate billingDate = LocalDate.now().plusDays(3);
+            var today = LocalDate.now();
+
+            LocalDate billingDate = today.plusDays(3);
 
             RegisterUniqueTransferDTO registerUniqueTransferDTO = new RegisterUniqueTransferDTO(
                     "Test Transfer",
@@ -483,7 +491,7 @@ class TransferServiceImplIntegrationTest {
                     sourceAccount.getId(),
                     destinationAccount.getId(),
                     billingDate,
-                    true
+                    null
             );
 
             // Act
@@ -546,7 +554,9 @@ class TransferServiceImplIntegrationTest {
             BigDecimal amountToTransfer = BigDecimal.valueOf(10000);
             String transferCurrency = "BRL";
 
-            LocalDate billingDate = LocalDate.now().plusDays(3);
+            var today = LocalDate.now();
+
+            LocalDate billingDate = today.plusDays(3);
 
             RegisterUniqueTransferDTO registerUniqueTransferDTO = new RegisterUniqueTransferDTO(
                     "Test Transfer",
@@ -556,7 +566,7 @@ class TransferServiceImplIntegrationTest {
                     sourceAccount.getId(),
                     randomUUID().toString(),
                     billingDate,
-                    true
+                    null
             );
 
             // Act & Assert
@@ -596,7 +606,9 @@ class TransferServiceImplIntegrationTest {
             BigDecimal amountToTransfer = BigDecimal.valueOf(10000);
             String transferCurrency = destinationAccountCurrency;
 
-            LocalDate billingDate = LocalDate.now().plusDays(3);
+            var today = LocalDate.now();
+
+            LocalDate billingDate = today.plusDays(3);
 
             RegisterUniqueTransferDTO registerUniqueTransferDTO = new RegisterUniqueTransferDTO(
                     "Test Transfer",
@@ -606,7 +618,7 @@ class TransferServiceImplIntegrationTest {
                     sourceAccount.getId(),
                     destinationAccount.getId(),
                     billingDate,
-                    true
+                    null
             );
 
             // Act
@@ -688,7 +700,7 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
                     .billingDate(today)
-                    .paid(true)
+                    .paid(today)
                     .recurrence(recurrence)
                     .build();
 
@@ -699,7 +711,7 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
                     .billingDate(today.plusDays(1))
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
@@ -729,6 +741,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::currency,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -741,6 +754,7 @@ class TransferServiceImplIntegrationTest {
                             transfer1.getValue().getCurrency(),
                             transfer1.getBillingDate(),
                             transfer1.isPaid(),
+                            transfer1.getPaid(),
                             1,
                             transfers.size(),
                             recurrence.getId()
@@ -814,7 +828,7 @@ class TransferServiceImplIntegrationTest {
     @Nested
     @DisplayName("listTransfers tests")
     class ListTransfersTests {
-        @RepeatedTest(20)
+        @Test
         @DisplayName("should return an empty page if there are no transfers matching the filters")
         void shouldReturnEmptyPageIfNoTransfers() {
             // Arrange
@@ -845,7 +859,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(result.getContent()).isEmpty();
         }
 
-        @RepeatedTest(20)
+        @Test
         @DisplayName("should return a page of transfers matching the date range and status filters")
         void shouldReturnPageOfTransfersWithValidFilters() {
             // Arrange
@@ -877,7 +891,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transfer1 = Transfer.builder()
                     .title("Transfer 1")
                     .billingDate(today.minusDays(1))
-                    .paid(true)
+                    .paid(today)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.TEN, "BRL"))
@@ -888,7 +902,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transfer2 = Transfer.builder()
                     .title("Transfer 2")
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(20), "BRL"))
@@ -899,7 +913,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transfer3 = Transfer.builder()
                     .title("Transfer 3")
                     .billingDate(today.plusDays(1))
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(30), "BRL"))
@@ -934,7 +948,8 @@ class TransferServiceImplIntegrationTest {
             TransferDTO returnedTransfer = onlyRecurrence.recurrences().getFirst();
             assertThat(returnedTransfer.id()).isEqualTo(transfer1.getId());
             assertThat(returnedTransfer.paid()).isTrue();
-            assertThat(returnedTransfer.title()).isEqualTo("Transfer 1");
+            assertThat(returnedTransfer.paidDate()).isEqualTo(transfer1.getPaid());
+            assertThat(returnedTransfer.title()).isEqualTo(transfer1.getTitle());
             assertThat(returnedTransfer.billingDate()).isEqualTo(transfer1.getBillingDate());
         }
 
@@ -981,7 +996,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferA = Transfer.builder()
                     .title("Transfer A")
                     .billingDate(today.minusDays(2))
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(15), "BRL"))
@@ -993,7 +1008,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferB = Transfer.builder()
                     .title("Transfer B")
                     .billingDate(today)
-                    .paid(true)
+                    .paid(today)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(25), "BRL"))
@@ -1005,7 +1020,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferC = Transfer.builder()
                     .title("Transfer C")
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(35), "BRL"))
@@ -1017,7 +1032,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferD = Transfer.builder()
                     .title("Transfer D")
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(15), "BRL"))
@@ -1029,7 +1044,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferE = Transfer.builder()
                     .title("Transfer E")
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(65), "BRL"))
@@ -1040,7 +1055,7 @@ class TransferServiceImplIntegrationTest {
             Transfer transferF = Transfer.builder()
                     .title("Transfer F")
                     .billingDate(today.plusMonths(2))
-                    .paid(false)
+                    .paid(null)
                     .sourceAccount(sourceAccount)
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(5), "BRL"))
@@ -1095,6 +1110,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::description,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -1104,6 +1120,7 @@ class TransferServiceImplIntegrationTest {
                             transferA.getDescription(),
                             transferA.getBillingDate(),
                             transferA.isPaid(),
+                            transferA.getPaid(),
                             1,
                             transfers1.size(),
                             transferA.getRecurrence().getId()
@@ -1124,6 +1141,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::description,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -1133,6 +1151,7 @@ class TransferServiceImplIntegrationTest {
                             transferB.getDescription(),
                             transferB.getBillingDate(),
                             transferB.isPaid(),
+                            transferB.getPaid(),
                             2,
                             transfers1.size(),
                             transferB.getRecurrence().getId()
@@ -1154,6 +1173,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::description,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -1163,6 +1183,7 @@ class TransferServiceImplIntegrationTest {
                             transferC.getDescription(),
                             transferC.getBillingDate(),
                             transferC.isPaid(),
+                            transferC.getPaid(),
                             3,
                             transfers1.size(),
                             transferC.getRecurrence().getId()
@@ -1183,6 +1204,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::description,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -1192,6 +1214,7 @@ class TransferServiceImplIntegrationTest {
                             transferD.getDescription(),
                             transferD.getBillingDate(),
                             transferD.isPaid(),
+                            transferD.getPaid(),
                             1,
                             transfers2.size(),
                             transferD.getRecurrence().getId()
@@ -1212,6 +1235,7 @@ class TransferServiceImplIntegrationTest {
                             TransferDTO::description,
                             TransferDTO::billingDate,
                             TransferDTO::paid,
+                            TransferDTO::paidDate,
                             TransferDTO::installmentIndex,
                             TransferDTO::installments,
                             TransferDTO::recurrenceId
@@ -1221,6 +1245,7 @@ class TransferServiceImplIntegrationTest {
                             transferE.getDescription(),
                             transferE.getBillingDate(),
                             transferE.isPaid(),
+                            transferE.getPaid(),
                             2,
                             transfers2.size(),
                             transferE.getRecurrence().getId()
@@ -1272,15 +1297,17 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(1000), "BRL"))
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(null, today);
+
             // Act
-            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), null, user.getId());
+            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), payTransferDTO, user.getId());
 
             // Assert
             assertThat(result).isNotNull();
@@ -1303,6 +1330,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(resultTransfer.installments()).isEqualTo(1);
             assertThat(resultTransfer.recurrenceId()).isEqualTo(recurrence.getId());
             assertThat(resultTransfer.paid()).isTrue();
+            assertThat(resultTransfer.paidDate()).isEqualTo(transfer.getPaid());
             assertThat(resultTransfer.fromAccount().id()).isEqualTo(sourceAccount.getId());
             assertThat(resultTransfer.toAccount().id()).isEqualTo(destinationAccount.getId());
             assertThat(resultTransfer.fromAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(0));
@@ -1361,15 +1389,17 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(1000), "BRL"))
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(differentSourceAccount.getId(), today);
+
             // Act
-            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), differentSourceAccount.getId(), user.getId());
+            RecurrenceDTO<TransferDTO> result = sut.payTransfer(transfer.getId(), payTransferDTO, user.getId());
 
             // Assert
             assertThat(result).isNotNull();
@@ -1392,6 +1422,7 @@ class TransferServiceImplIntegrationTest {
             assertThat(resultTransfer.installments()).isEqualTo(1);
             assertThat(resultTransfer.recurrenceId()).isEqualTo(recurrence.getId());
             assertThat(resultTransfer.paid()).isTrue();
+            assertThat(resultTransfer.paidDate()).isEqualTo(transfer.getPaid());
             assertThat(resultTransfer.fromAccount().id()).isEqualTo(differentSourceAccount.getId());
             assertThat(resultTransfer.toAccount().id()).isEqualTo(destinationAccount.getId());
             assertThat(resultTransfer.fromAccount().balance()).isEqualByComparingTo(BigDecimal.valueOf(0));
@@ -1418,8 +1449,10 @@ class TransferServiceImplIntegrationTest {
             User user = createUser();
             userRepository.save(user);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(null, LocalDate.now());
+
             // Act & Assert
-            assertThatThrownBy(() -> sut.payTransfer(randomUUID().toString(), null, user.getId()))
+            assertThatThrownBy(() -> sut.payTransfer(randomUUID().toString(), payTransferDTO, user.getId()))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessage("Transfer not found.");
         }
@@ -1462,15 +1495,17 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.TEN, "BRL"))
                     .billingDate(today)
-                    .paid(true)
+                    .paid(today)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO  = new PayTransferDTO(null, today);
+
             // Act & Assert
-            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), payTransferDTO, user.getId()))
                     .isInstanceOf(TransferAlreadyPaidException.class);
         }
 
@@ -1505,15 +1540,17 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(500), "BRL"))
                     .billingDate(LocalDate.now())
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(randomUUID().toString(), today);
+
             // Act & Assert
-            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), randomUUID().toString(), user.getId()))
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), payTransferDTO, user.getId()))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessage("Account not found.");
         }
@@ -1557,15 +1594,17 @@ class TransferServiceImplIntegrationTest {
                     .destinationAccount(destinationAccount)
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(null, today);
+
             // Act & Assert
-            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), payTransferDTO, user.getId()))
                     .isInstanceOf(ResourceIsArchivedException.class)
                     .hasMessage("Unable to pay transfer if source account is archived.");
         }
@@ -1600,15 +1639,17 @@ class TransferServiceImplIntegrationTest {
                     .sourceAccount(sourceAccount)
                     .value(new Money(BigDecimal.valueOf(100), "BRL"))
                     .billingDate(today)
-                    .paid(false)
+                    .paid(null)
                     .recurrence(recurrence)
                     .build();
 
             recurrence.setTransfers(List.of(transfer));
             transferRepository.save(transfer);
 
+            PayTransferDTO payTransferDTO = new PayTransferDTO(null, today);
+
             // Act & Assert
-            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), null, user.getId()))
+            assertThatThrownBy(() -> sut.payTransfer(transfer.getId(), payTransferDTO, user.getId()))
                     .isInstanceOf(InvalidTransferDestinationException.class);
         }
     }

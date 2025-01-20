@@ -151,13 +151,13 @@ public class TransferServiceImpl implements TransferService {
                     .value(transferValue)
                     .billingDate(registerUniqueTransferDTO.billingDate())
                     .installmentIndex(1)
-                    .paid(registerUniqueTransferDTO.paid())
+                    .paid(registerUniqueTransferDTO.paidDate())
                     .recurrence(recurrence)
                     .build();
 
             transferRepository.save(transfer);
 
-            boolean transferIsPaid = registerUniqueTransferDTO.paid();
+            boolean transferIsPaid = registerUniqueTransferDTO.paidDate() != null;
 
             if (transferIsPaid) {
                 handleCurrencyConversions(transfer, sourceAccount, destinationAccount);
@@ -203,6 +203,7 @@ public class TransferServiceImpl implements TransferService {
                             transfer.getValue().getCurrency(),
                             transfer.getBillingDate(),
                             transfer.isPaid(),
+                            transfer.getPaid(),
                             1,
                             1,
                             transfer.getRecurrence().getId()
@@ -277,7 +278,7 @@ public class TransferServiceImpl implements TransferService {
                     .map((billingDate) -> {
                         Money transferValue = new Money(registerRepeatedTransferDTO.amount(), registerRepeatedTransferDTO.currency());
 
-                        boolean isPaid = registerRepeatedTransferDTO.billingDate().equals(billingDate) ? registerRepeatedTransferDTO.paid() : false;
+                        var paidDate = registerRepeatedTransferDTO.billingDate().equals(billingDate) ? registerRepeatedTransferDTO.paidDate() : null;
 
                         return Transfer.builder()
                                 .title(registerRepeatedTransferDTO.title())
@@ -287,7 +288,7 @@ public class TransferServiceImpl implements TransferService {
                                 .value(transferValue)
                                 .billingDate(billingDate)
                                 .installmentIndex(index.getAndIncrement())
-                                .paid(isPaid)
+                                .paid(paidDate)
                                 .recurrence(recurrence)
                                 .build();
                     })
@@ -295,7 +296,7 @@ public class TransferServiceImpl implements TransferService {
 
             transferRepository.saveAll(transfers);
 
-            boolean transferIsPaid = registerRepeatedTransferDTO.paid();
+            boolean transferIsPaid = registerRepeatedTransferDTO.paidDate() != null;
 
             if (transferIsPaid) {
                 handleCurrencyConversions(transfers.getFirst(), sourceAccount, destinationAccount);
@@ -343,6 +344,7 @@ public class TransferServiceImpl implements TransferService {
                                     transfer.getValue().getCurrency(),
                                     transfer.getBillingDate(),
                                     transfer.isPaid(),
+                                    transfer.getPaid(),
                                     transfer.getInstallmentIndex(),
                                     transfers.size(),
                                     transfer.getRecurrence().getId()
@@ -415,6 +417,7 @@ public class TransferServiceImpl implements TransferService {
                 transfer.getValue().getCurrency(),
                 transfer.getBillingDate(),
                 transfer.isPaid(),
+                transfer.getPaid(),
                 transferIndex,
                 orderedTransfers.size(),
                 transfer.getRecurrence().getId()
@@ -486,6 +489,7 @@ public class TransferServiceImpl implements TransferService {
                             transfer.getValue().getCurrency(),
                             transfer.getBillingDate(),
                             transfer.isPaid(),
+                            transfer.getPaid(),
                             transfer.getInstallmentIndex(),
                             totalTransfers,
                             transfer.getRecurrence().getId()
@@ -505,7 +509,9 @@ public class TransferServiceImpl implements TransferService {
 
     @Override
     @Transactional
-    public RecurrenceDTO<TransferDTO> payTransfer(String transferId, String accountId, String userId) {
+    public RecurrenceDTO<TransferDTO> payTransfer(String transferId, PayTransferDTO payTransferDTO, String userId) {
+        String accountId = payTransferDTO.accountId();
+
         Recurrence recurrence = recurrenceRepository
                 .findByTransferIdAndUserId(transferId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
@@ -516,7 +522,6 @@ public class TransferServiceImpl implements TransferService {
 
         if (accountToBePaid == null) {
             throw new InvalidTransferDestinationException();
-
         }
 
         if (transferToPay.isPaid()) {
@@ -544,7 +549,9 @@ public class TransferServiceImpl implements TransferService {
 
         transferToPay.setSourceAccount(accountToPay);
 
-        transferToPay.setPaid(true);
+        LocalDate paidAt = payTransferDTO.paidDate() != null ? payTransferDTO.paidDate() : LocalDate.now();
+
+        transferToPay.setPaid(paidAt);
 
         transferRepository.save(transferToPay);
 
@@ -588,6 +595,7 @@ public class TransferServiceImpl implements TransferService {
                 transferToPay.getValue().getCurrency(),
                 transferToPay.getBillingDate(),
                 transferToPay.isPaid(),
+                transferToPay.getPaid(),
                 transferToPay.getInstallmentIndex(),
                 installmentsNumber,
                 transferToPay.getRecurrence().getId()

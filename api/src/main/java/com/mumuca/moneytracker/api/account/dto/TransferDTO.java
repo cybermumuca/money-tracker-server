@@ -13,6 +13,7 @@ public record TransferDTO(
         String currency,
         LocalDate billingDate,
         Boolean paid,
+        LocalDate paidDate,
         Integer installmentIndex,
         Integer installments,
         String recurrenceId

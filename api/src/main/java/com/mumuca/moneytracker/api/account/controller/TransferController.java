@@ -110,9 +110,7 @@ public class TransferController {
             @RequestBody PayTransferDTO payTransferDTO,
             @AuthenticationPrincipal Jwt jwt
     ) {
-        String accountId = payTransferDTO.accountId();
-
-        RecurrenceDTO<TransferDTO> transfer = transferService.payTransfer(transferId, accountId, jwt.getSubject());
+        RecurrenceDTO<TransferDTO> transfer = transferService.payTransfer(transferId, payTransferDTO, jwt.getSubject());
 
         return ResponseEntity
                 .status(HttpStatus.OK)

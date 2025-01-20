@@ -30,6 +30,5 @@ public record RegisterUniqueTransferDTO(
         @NotNull(message = "Billing date is required")
         LocalDate billingDate,
 
-        @NotNull(message = "Paid is required")
-        Boolean paid
+        LocalDate paidDate
 ) {}

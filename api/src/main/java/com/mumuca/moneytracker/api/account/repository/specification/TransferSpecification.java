@@ -33,16 +33,16 @@ public class TransferSpecification {
 
             if (status != Status.ALL) {
                 switch (status) {
-                    case PAID -> predicates.add(cb.isTrue(transfer.get("paid")));
+                    case PAID -> predicates.add(cb.isNotNull(transfer.get("paid")));
                     case OVERDUE -> {
                         // Exemplo: COBRA transfers vencidas (data < hoje e não pagas)
                         predicates.add(cb.lessThan(transfer.get("billingDate"), LocalDate.now()));
-                        predicates.add(cb.isFalse(transfer.get("paid")));
+                        predicates.add(cb.isNull(transfer.get("paid")));
                     }
                     case PENDING -> {
                         // Exemplo: data >= hoje e não pagas
                         predicates.add(cb.greaterThanOrEqualTo(transfer.get("billingDate"), LocalDate.now()));
-                        predicates.add(cb.isFalse(transfer.get("paid")));
+                        predicates.add(cb.isNull(transfer.get("paid")));
                     }
                     case IGNORED -> {
                         // TODO: Implement ignored

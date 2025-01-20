@@ -31,8 +31,7 @@ public record RegisterRepeatedTransferDTO(
         @NotNull(message = "Billing date is required")
         LocalDate billingDate,
 
-        @NotNull(message = "Paid is required")
-        Boolean paid,
+        LocalDate paidDate,
 
         @NotNull(message = "Recurrence is required")
         RecurrenceInterval recurrenceInterval,

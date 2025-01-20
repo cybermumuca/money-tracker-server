@@ -1,9 +1,6 @@
 package com.mumuca.moneytracker.api.account.service;
 
-import com.mumuca.moneytracker.api.account.dto.RecurrenceDTO;
-import com.mumuca.moneytracker.api.account.dto.RegisterRepeatedTransferDTO;
-import com.mumuca.moneytracker.api.account.dto.RegisterUniqueTransferDTO;
-import com.mumuca.moneytracker.api.account.dto.TransferDTO;
+import com.mumuca.moneytracker.api.account.dto.*;
 import com.mumuca.moneytracker.api.account.model.Status;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -32,5 +29,5 @@ public interface TransferService {
             String userId
     );
 
-    RecurrenceDTO<TransferDTO> payTransfer(String transferId, String accountId, String userId);
+    RecurrenceDTO<TransferDTO> payTransfer(String transferId, PayTransferDTO payTransferDTO, String userId);
 }

@@ -1,5 +1,8 @@
 package com.mumuca.moneytracker.api.account.dto;
 
+import java.time.LocalDate;
+
 public record PayTransferDTO(
-        String accountId
+        String accountId,
+        LocalDate paidDate
 ) {}

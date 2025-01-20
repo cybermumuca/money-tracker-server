@@ -48,9 +48,13 @@ public class Transfer extends BaseAuditableEntity {
     private Money value;
 
     @Column(name = "paid")
-    private boolean paid;
+    private LocalDate paid;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recurrence_id")
     private Recurrence recurrence;
+
+    public boolean isPaid() {
+        return paid != null;
+    }
 }
