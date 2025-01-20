@@ -1,6 +1,9 @@
 package com.mumuca.moneytracker.api.account.service.impl;
 
 import com.mumuca.moneytracker.api.account.dto.*;
+import com.mumuca.moneytracker.api.account.exception.InvalidTransferDestinationException;
+import com.mumuca.moneytracker.api.account.exception.InvalidTransferSourceException;
+import com.mumuca.moneytracker.api.account.exception.TransferAlreadyPaidException;
 import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
@@ -498,5 +501,105 @@ public class TransferServiceImpl implements TransferService {
                             List.of(transferDTO)
                     );
                 });
+    }
+
+    @Override
+    @Transactional
+    public RecurrenceDTO<TransferDTO> payTransfer(String transferId, String accountId, String userId) {
+        Recurrence recurrence = recurrenceRepository
+                .findByTransferIdAndUserId(transferId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
+
+        Transfer transferToPay = recurrence.getTransfers().getFirst();
+
+        Account accountToBePaid = transferToPay.getDestinationAccount();
+
+        if (accountToBePaid == null) {
+            throw new InvalidTransferDestinationException();
+
+        }
+
+        if (transferToPay.isPaid()) {
+            throw new TransferAlreadyPaidException();
+        }
+
+        Account accountToPay;
+
+        if (accountId == null) {
+            accountToPay = transferToPay.getSourceAccount();
+
+            if (accountToPay == null) {
+                throw new InvalidTransferSourceException();
+            }
+        } else {
+            accountToPay = accountRepository.findById(accountId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Account not found."));
+        }
+
+        if (accountToPay.isArchived()) {
+            throw new ResourceIsArchivedException("Unable to pay transfer if source account is archived.");
+        }
+
+        handleCurrencyConversions(transferToPay, accountToPay, accountToBePaid);
+
+        transferToPay.setSourceAccount(accountToPay);
+
+        transferToPay.setPaid(true);
+
+        transferRepository.save(transferToPay);
+
+        accountRepository.saveAll(List.of(accountToPay, accountToBePaid));
+
+        AccountDTO sourceAccountDTO = new AccountDTO(
+                accountToPay.getId(),
+                accountToPay.getName(),
+                accountToPay.getColor(),
+                accountToPay.getIcon(),
+                accountToPay.getType(),
+                accountToPay.getBalance().getAmount(),
+                accountToPay.getBalance().getCurrency(),
+                accountToPay.isArchived()
+        );
+
+        AccountDTO destinationAccountDTO = new AccountDTO(
+                accountToBePaid.getId(),
+                accountToBePaid.getName(),
+                accountToBePaid.getColor(),
+                accountToBePaid.getIcon(),
+                accountToBePaid.getType(),
+                accountToBePaid.getBalance().getAmount(),
+                accountToBePaid.getBalance().getCurrency(),
+                accountToBePaid.isArchived()
+        );
+
+        int installmentsNumber = 1;
+
+        if (recurrence.getRecurrenceType() != RecurrenceType.UNIQUE) {
+            installmentsNumber = transferRepository.countTransfersByRecurrenceId(recurrence.getId());
+        }
+
+        TransferDTO transferDTO = new TransferDTO(
+                transferToPay.getId(),
+                transferToPay.getTitle(),
+                transferToPay.getDescription(),
+                sourceAccountDTO,
+                destinationAccountDTO,
+                transferToPay.getValue().getAmount(),
+                transferToPay.getValue().getCurrency(),
+                transferToPay.getBillingDate(),
+                transferToPay.isPaid(),
+                transferToPay.getInstallmentIndex(),
+                installmentsNumber,
+                transferToPay.getRecurrence().getId()
+        );
+
+        return new RecurrenceDTO<TransferDTO>(
+                recurrence.getId(),
+                recurrence.getInterval(),
+                recurrence.getFirstOccurrence(),
+                recurrence.getTransactionType(),
+                recurrence.getRecurrenceType(),
+                List.of(transferDTO)
+        );
     }
 }

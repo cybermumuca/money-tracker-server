@@ -31,4 +31,6 @@ public interface TransferService {
             Status status,
             String userId
     );
+
+    RecurrenceDTO<TransferDTO> payTransfer(String transferId, String accountId, String userId);
 }
