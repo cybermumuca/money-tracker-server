@@ -698,4 +698,13 @@ public class TransferServiceImpl implements TransferService {
                 List.of(transferDTO)
         );
     }
+
+    @Override
+    public void deleteTransfer(String transferId, String userId) {
+        Transfer transferToDelete = transferRepository
+                .findTransferById(transferId, userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
+
+        transferRepository.deleteById(transferToDelete.getId());
+    }
 }

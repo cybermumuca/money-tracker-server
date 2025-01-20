@@ -128,4 +128,16 @@ public class TransferController {
                 .status(HttpStatus.OK)
                 .body(transfer);
     }
+
+    @DeleteMapping(path = "/v1/transfers/{id}")
+    public ResponseEntity<Void> deleteTransfer(
+            @PathVariable("id") String transferId,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        transferService.deleteTransfer(transferId, jwt.getSubject());
+
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(null);
+    }
 }
