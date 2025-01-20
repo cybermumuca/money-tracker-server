@@ -614,11 +614,9 @@ public class TransferServiceImpl implements TransferService {
     @Override
     @Transactional
     public RecurrenceDTO<TransferDTO> unpayTransfer(String transferId, String userId) {
-        Recurrence recurrence = recurrenceRepository
-                .findByTransferIdAndUserId(transferId, userId)
+        Transfer transferToUnpay = transferRepository
+                .findTransferWithRecurrenceByIdAndUserId(transferId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Transfer not found."));
-
-        Transfer transferToUnpay = recurrence.getTransfers().getFirst();
 
         if (!transferToUnpay.isPaid()) {
             throw new TransferNotPaidYetException();
@@ -665,6 +663,8 @@ public class TransferServiceImpl implements TransferService {
                 accountToWithdraw.getBalance().getCurrency(),
                 accountToWithdraw.isArchived()
         );
+
+        Recurrence recurrence = transferToUnpay.getRecurrence();
 
         int installmentsNumber = 1;
 
