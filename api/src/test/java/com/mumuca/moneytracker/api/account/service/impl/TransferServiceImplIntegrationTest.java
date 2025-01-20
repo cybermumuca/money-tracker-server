@@ -13,14 +13,16 @@ import com.mumuca.moneytracker.api.auth.repository.UserRepository;
 import com.mumuca.moneytracker.api.exception.ResourceIsArchivedException;
 import com.mumuca.moneytracker.api.exception.ResourceNotFoundException;
 import com.mumuca.moneytracker.api.model.Money;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.test.annotation.Repeat;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.transaction.annotation.Transactional;
@@ -804,6 +806,423 @@ class TransferServiceImplIntegrationTest {
             assertThatThrownBy(() -> sut.getTransfer(randomUUID().toString(), user.getId()))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessage("Transfer not found.");
+        }
+    }
+
+    @Nested
+    @DisplayName("listTransfers tests")
+    class ListTransfersTests {
+        @RepeatedTest(20)
+        @DisplayName("should return an empty page if there are no transfers matching the filters")
+        void shouldReturnEmptyPageIfNoTransfers() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            LocalDate startDate = LocalDate.now().minusDays(10);
+            LocalDate endDate = LocalDate.now().plusDays(10);
+            Pageable pageable = PageRequest.of(
+                    0,
+                    20,
+                    Sort.by("billingDate").ascending()
+            );
+            Status status = Status.ALL;
+
+            // Act
+            Page<RecurrenceDTO<TransferDTO>> result = sut.listTransfers(
+                    startDate,
+                    endDate,
+                    pageable,
+                    status,
+                    user.getId()
+            );
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(0);
+            assertThat(result.getContent()).isEmpty();
+        }
+
+        @RepeatedTest(20)
+        @DisplayName("should return a page of transfers matching the date range and status filters")
+        void shouldReturnPageOfTransfersWithValidFilters() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+            accountRepository.save(sourceAccount);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+            accountRepository.save(destinationAccount);
+
+            LocalDate today = LocalDate.now();
+
+            Recurrence recurrence = Recurrence.builder()
+                    .firstOccurrence(today.minusDays(2))
+                    .interval(RecurrenceInterval.DAILY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .user(user)
+                    .transfers(new ArrayList<>())
+                    .build();
+
+            recurrenceRepository.save(recurrence);
+
+            // Transfer 1: yesterday (PAID)
+            Transfer transfer1 = Transfer.builder()
+                    .title("Transfer 1")
+                    .billingDate(today.minusDays(1))
+                    .paid(true)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.TEN, "BRL"))
+                    .recurrence(recurrence)
+                    .build();
+
+            // Transfer 2: today (NOT PAID)
+            Transfer transfer2 = Transfer.builder()
+                    .title("Transfer 2")
+                    .billingDate(today)
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(20), "BRL"))
+                    .recurrence(recurrence)
+                    .build();
+
+            // Transfer 3: tomorrow (NOT PAID)
+            Transfer transfer3 = Transfer.builder()
+                    .title("Transfer 3")
+                    .billingDate(today.plusDays(1))
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(30), "BRL"))
+                    .recurrence(recurrence)
+                    .build();
+
+            transferRepository.saveAll(List.of(transfer1, transfer2, transfer3));
+            recurrence.setTransfers(List.of(transfer1, transfer2, transfer3));
+
+            LocalDate startDate = today.minusDays(2);
+            LocalDate endDate = today.plusDays(2);
+
+            Pageable pageable = PageRequest.of(0, 20, Sort.by("billingDate").ascending());
+            Status paidStatus = Status.PAID;
+
+            // Act
+            Page<RecurrenceDTO<TransferDTO>> result = sut.listTransfers(
+                    startDate,
+                    endDate,
+                    pageable,
+                    paidStatus,
+                    user.getId()
+            );
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(1);
+
+            RecurrenceDTO<TransferDTO> onlyRecurrence = result.getContent().getFirst();
+            assertThat(onlyRecurrence.recurrences()).hasSize(1);
+
+            TransferDTO returnedTransfer = onlyRecurrence.recurrences().getFirst();
+            assertThat(returnedTransfer.id()).isEqualTo(transfer1.getId());
+            assertThat(returnedTransfer.paid()).isTrue();
+            assertThat(returnedTransfer.title()).isEqualTo("Transfer 1");
+            assertThat(returnedTransfer.billingDate()).isEqualTo(transfer1.getBillingDate());
+        }
+
+        @RepeatedTest(20)
+        @DisplayName("should return multiple transfers when using Status.ALL and date range covers all")
+        void shouldReturnMultipleTransfersWhenStatusAllAndDateRangeIsWide() {
+            // Arrange
+            User user = createUser();
+            userRepository.save(user);
+
+            Account sourceAccount = createAccount();
+            sourceAccount.setUser(user);
+
+            Account destinationAccount = createAccount();
+            destinationAccount.setUser(user);
+
+            accountRepository.saveAll(List.of(sourceAccount, destinationAccount));
+
+            var today = LocalDate.now();
+
+            Recurrence recurrence1 = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.DAILY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .user(user)
+                    .transfers(new ArrayList<>())
+                    .build();
+
+            Recurrence recurrence2 = Recurrence.builder()
+                    .firstOccurrence(today)
+                    .interval(RecurrenceInterval.DAILY)
+                    .transactionType(TransactionType.TRANSFER)
+                    .recurrenceType(RecurrenceType.REPEATED)
+                    .user(user)
+                    .transfers(new ArrayList<>())
+                    .build();
+
+            List<Recurrence> recurrences = List.of(recurrence1, recurrence2);
+
+            recurrenceRepository.saveAll(recurrences);
+
+            // Transfer A
+            Transfer transferA = Transfer.builder()
+                    .title("Transfer A")
+                    .billingDate(today.minusDays(2))
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(15), "BRL"))
+                    .installmentIndex(1)
+                    .recurrence(recurrence1)
+                    .build();
+
+            // Transfer B
+            Transfer transferB = Transfer.builder()
+                    .title("Transfer B")
+                    .billingDate(today)
+                    .paid(true)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(25), "BRL"))
+                    .installmentIndex(2)
+                    .recurrence(recurrence1)
+                    .build();
+
+            // Transfer C
+            Transfer transferC = Transfer.builder()
+                    .title("Transfer C")
+                    .billingDate(today)
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(35), "BRL"))
+                    .installmentIndex(3)
+                    .recurrence(recurrence1)
+                    .build();
+
+            // Transfer D
+            Transfer transferD = Transfer.builder()
+                    .title("Transfer D")
+                    .billingDate(today)
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(15), "BRL"))
+                    .installmentIndex(1)
+                    .recurrence(recurrence2)
+                    .build();
+
+            // Transfer E
+            Transfer transferE = Transfer.builder()
+                    .title("Transfer E")
+                    .billingDate(today)
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(65), "BRL"))
+                    .installmentIndex(2)
+                    .recurrence(recurrence2)
+                    .build();
+
+            Transfer transferF = Transfer.builder()
+                    .title("Transfer F")
+                    .billingDate(today.plusMonths(2))
+                    .paid(false)
+                    .sourceAccount(sourceAccount)
+                    .destinationAccount(destinationAccount)
+                    .value(new Money(BigDecimal.valueOf(5), "BRL"))
+                    .installmentIndex(3)
+                    .recurrence(recurrence2)
+                    .build();
+
+            List<Transfer> transfers1 = List.of(transferA, transferB, transferC);
+            List<Transfer> transfers2 = List.of(transferD, transferE, transferF);
+
+            List<Transfer> transfers = List.of(transferA, transferB, transferC, transferD, transferE, transferF);
+
+            transferRepository.saveAll(transfers);
+            recurrence1.setTransfers(transfers1);
+            recurrence2.setTransfers(transfers2);
+
+            // We set a wide range that captures all transfers
+            LocalDate startDate = today.minusDays(3);
+            LocalDate endDate = today.plusDays(3);
+            Pageable pageable = PageRequest.of(0, 10, Sort.by("billingDate").ascending());
+            Status status = Status.ALL;
+
+            // Act
+            Page<RecurrenceDTO<TransferDTO>> result = sut.listTransfers(
+                    startDate,
+                    endDate,
+                    pageable,
+                    status,
+                    user.getId()
+            );
+
+            // Assert
+            assertThat(result).isNotNull();
+            assertThat(result.getTotalElements()).isEqualTo(5);
+
+            var content = result.getContent();
+
+            assertThat(content).hasSize(5);
+
+            var recurrenceTransfer1 = content.getFirst();
+
+            assertThat(recurrenceTransfer1.id()).isEqualTo(recurrence1.getId());
+            assertThat(recurrenceTransfer1.interval()).isEqualTo(recurrence1.getInterval());
+            assertThat(recurrenceTransfer1.firstOccurrence()).isEqualTo(recurrence1.getFirstOccurrence());
+            assertThat(recurrenceTransfer1.transactionType()).isEqualTo(recurrence1.getTransactionType());
+            assertThat(recurrenceTransfer1.recurrenceType()).isEqualTo(recurrence1.getRecurrenceType());
+            assertThat(recurrenceTransfer1.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    ).contains(tuple(
+                            transferA.getId(),
+                            transferA.getTitle(),
+                            transferA.getDescription(),
+                            transferA.getBillingDate(),
+                            transferA.isPaid(),
+                            1,
+                            transfers1.size(),
+                            transferA.getRecurrence().getId()
+                    ));
+
+            var recurrenceTransfer2 = content.get(1);
+
+            assertThat(recurrenceTransfer2.id()).isEqualTo(recurrence1.getId());
+            assertThat(recurrenceTransfer2.interval()).isEqualTo(recurrence1.getInterval());
+            assertThat(recurrenceTransfer2.firstOccurrence()).isEqualTo(recurrence1.getFirstOccurrence());
+            assertThat(recurrenceTransfer2.transactionType()).isEqualTo(recurrence1.getTransactionType());
+            assertThat(recurrenceTransfer2.recurrenceType()).isEqualTo(recurrence1.getRecurrenceType());
+            assertThat(recurrenceTransfer2.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    ).contains(tuple(
+                            transferB.getId(),
+                            transferB.getTitle(),
+                            transferB.getDescription(),
+                            transferB.getBillingDate(),
+                            transferB.isPaid(),
+                            2,
+                            transfers1.size(),
+                            transferB.getRecurrence().getId()
+                    ));
+
+
+            var recurrenceTransfer3 = content.get(2);
+
+            assertThat(recurrenceTransfer3.id()).isEqualTo(recurrence1.getId());
+            assertThat(recurrenceTransfer3.interval()).isEqualTo(recurrence1.getInterval());
+            assertThat(recurrenceTransfer3.firstOccurrence()).isEqualTo(recurrence1.getFirstOccurrence());
+            assertThat(recurrenceTransfer3.transactionType()).isEqualTo(recurrence1.getTransactionType());
+            assertThat(recurrenceTransfer3.recurrenceType()).isEqualTo(recurrence1.getRecurrenceType());
+            assertThat(recurrenceTransfer3.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    ).contains(tuple(
+                            transferC.getId(),
+                            transferC.getTitle(),
+                            transferC.getDescription(),
+                            transferC.getBillingDate(),
+                            transferC.isPaid(),
+                            3,
+                            transfers1.size(),
+                            transferC.getRecurrence().getId()
+                    ));
+
+            var recurrenceTransfer4 = content.get(3);
+
+            assertThat(recurrenceTransfer4.id()).isEqualTo(recurrence2.getId());
+            assertThat(recurrenceTransfer4.interval()).isEqualTo(recurrence2.getInterval());
+            assertThat(recurrenceTransfer4.firstOccurrence()).isEqualTo(recurrence2.getFirstOccurrence());
+            assertThat(recurrenceTransfer4.transactionType()).isEqualTo(recurrence2.getTransactionType());
+            assertThat(recurrenceTransfer4.recurrenceType()).isEqualTo(recurrence2.getRecurrenceType());
+            assertThat(recurrenceTransfer4.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    ).contains(tuple(
+                            transferD.getId(),
+                            transferD.getTitle(),
+                            transferD.getDescription(),
+                            transferD.getBillingDate(),
+                            transferD.isPaid(),
+                            1,
+                            transfers2.size(),
+                            transferD.getRecurrence().getId()
+                    ));
+
+            var recurrenceTransfer5 = content.get(4);
+
+            assertThat(recurrenceTransfer5.id()).isEqualTo(recurrence2.getId());
+            assertThat(recurrenceTransfer5.interval()).isEqualTo(recurrence2.getInterval());
+            assertThat(recurrenceTransfer5.firstOccurrence()).isEqualTo(recurrence2.getFirstOccurrence());
+            assertThat(recurrenceTransfer5.transactionType()).isEqualTo(recurrence2.getTransactionType());
+            assertThat(recurrenceTransfer5.recurrenceType()).isEqualTo(recurrence2.getRecurrenceType());
+            assertThat(recurrenceTransfer5.recurrences())
+                    .hasSize(1)
+                    .extracting(
+                            TransferDTO::id,
+                            TransferDTO::title,
+                            TransferDTO::description,
+                            TransferDTO::billingDate,
+                            TransferDTO::paid,
+                            TransferDTO::installmentIndex,
+                            TransferDTO::installments,
+                            TransferDTO::recurrenceId
+                    ).contains(tuple(
+                            transferE.getId(),
+                            transferE.getTitle(),
+                            transferE.getDescription(),
+                            transferE.getBillingDate(),
+                            transferE.isPaid(),
+                            2,
+                            transfers2.size(),
+                            transferE.getRecurrence().getId()
+                    ));
         }
     }
 }
