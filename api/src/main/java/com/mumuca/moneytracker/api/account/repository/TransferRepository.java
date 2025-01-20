@@ -2,6 +2,7 @@ package com.mumuca.moneytracker.api.account.repository;
 
 import com.mumuca.moneytracker.api.account.model.Transfer;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -9,11 +10,17 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface TransferRepository extends JpaRepository<Transfer, String> {
+public interface TransferRepository extends JpaRepository<Transfer, String>, JpaSpecificationExecutor<Transfer> {
     @Query("""
         SELECT t FROM Transfer t
         WHERE t.recurrence.id = :recurrenceId
-        ORDER BY t.billingDate
+        ORDER BY t.billingDate, t.createdDate
     """)
     List<Transfer> findTransfersByRecurrenceId(@Param("recurrenceId") String recurrenceId);
+
+    @Query("""
+        SELECT COUNT(t) FROM Transfer t
+        WHERE t.recurrence.id = :recurrenceId
+    """)
+    int countTransfersByRecurrenceId(@Param("recurrenceId") String recurrenceId);
 }

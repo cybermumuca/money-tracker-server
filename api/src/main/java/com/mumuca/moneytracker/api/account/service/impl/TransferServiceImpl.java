@@ -5,6 +5,7 @@ import com.mumuca.moneytracker.api.account.model.*;
 import com.mumuca.moneytracker.api.account.repository.AccountRepository;
 import com.mumuca.moneytracker.api.account.repository.RecurrenceRepository;
 import com.mumuca.moneytracker.api.account.repository.TransferRepository;
+import com.mumuca.moneytracker.api.account.repository.specification.TransferSpecification;
 import com.mumuca.moneytracker.api.account.service.TransferService;
 import com.mumuca.moneytracker.api.auth.model.User;
 import com.mumuca.moneytracker.api.exception.ResourceIsArchivedException;
@@ -13,11 +14,16 @@ import com.mumuca.moneytracker.api.model.Money;
 import com.mumuca.moneytracker.api.providers.CurrencyProvider;
 import com.mumuca.moneytracker.api.providers.DateProvider;
 import lombok.AllArgsConstructor;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -141,6 +147,7 @@ public class TransferServiceImpl implements TransferService {
                     .destinationAccount(destinationAccount)
                     .value(transferValue)
                     .billingDate(registerUniqueTransferDTO.billingDate())
+                    .installmentIndex(1)
                     .paid(registerUniqueTransferDTO.paid())
                     .recurrence(recurrence)
                     .build();
@@ -260,6 +267,8 @@ public class TransferServiceImpl implements TransferService {
             );
 
 
+            AtomicInteger index = new AtomicInteger(1);
+
             List<Transfer> transfers = billingDates
                     .stream()
                     .map((billingDate) -> {
@@ -274,6 +283,7 @@ public class TransferServiceImpl implements TransferService {
                                 .destinationAccount(destinationAccount)
                                 .value(transferValue)
                                 .billingDate(billingDate)
+                                .installmentIndex(index.getAndIncrement())
                                 .paid(isPaid)
                                 .recurrence(recurrence)
                                 .build();
@@ -312,8 +322,6 @@ public class TransferServiceImpl implements TransferService {
                     destinationAccount.isArchived()
             );
 
-            AtomicInteger index = new AtomicInteger(1);
-
             return new RecurrenceDTO<TransferDTO>(
                     recurrence.getId(),
                     recurrence.getInterval(),
@@ -332,7 +340,7 @@ public class TransferServiceImpl implements TransferService {
                                     transfer.getValue().getCurrency(),
                                     transfer.getBillingDate(),
                                     transfer.isPaid(),
-                                    index.getAndIncrement(),
+                                    transfer.getInstallmentIndex(),
                                     transfers.size(),
                                     transfer.getRecurrence().getId()
                             ))
@@ -417,5 +425,78 @@ public class TransferServiceImpl implements TransferService {
                 recurrence.getRecurrenceType(),
                 List.of(transferDTO)
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RecurrenceDTO<TransferDTO>> listTransfers(
+            LocalDate startDate,
+            LocalDate endDate,
+            Pageable pageable,
+            Status status,
+            String userId
+    ) {
+        Specification<Transfer> transferSpec = TransferSpecification
+                .withFilters(userId, startDate, endDate, status);
+
+        Page<Transfer> transfers = transferRepository.findAll(transferSpec, pageable);
+
+        return transfers
+                .map(transfer -> {
+                    Recurrence recurrence = transfer.getRecurrence();
+
+                    int totalTransfers = transferRepository.countTransfersByRecurrenceId(recurrence.getId());
+
+                    Account sourceAccount = transfer.getSourceAccount();
+
+                    AccountDTO sourceAccountDTO = new AccountDTO(
+                            sourceAccount.getId(),
+                            sourceAccount.getName(),
+                            sourceAccount.getColor(),
+                            sourceAccount.getIcon(),
+                            sourceAccount.getType(),
+                            sourceAccount.getBalance().getAmount(),
+                            sourceAccount.getBalance().getCurrency(),
+                            sourceAccount.isArchived()
+                    );
+
+                    Account destinationAccount = transfer.getDestinationAccount();
+
+                    AccountDTO destinationAccountDTO = new AccountDTO(
+                            destinationAccount.getId(),
+                            destinationAccount.getName(),
+                            destinationAccount.getColor(),
+                            destinationAccount.getIcon(),
+                            destinationAccount.getType(),
+                            destinationAccount.getBalance().getAmount(),
+                            destinationAccount.getBalance().getCurrency(),
+                            destinationAccount.isArchived()
+                    );
+
+                    TransferDTO transferDTO = new TransferDTO(
+                            transfer.getId(),
+                            transfer.getTitle(),
+                            transfer.getDescription(),
+                            sourceAccountDTO,
+                            destinationAccountDTO,
+                            transfer.getValue().getAmount(),
+                            transfer.getValue().getCurrency(),
+                            transfer.getBillingDate(),
+                            transfer.isPaid(),
+                            transfer.getInstallmentIndex(),
+                            totalTransfers,
+                            transfer.getRecurrence().getId()
+                    );
+
+
+                    return new RecurrenceDTO<TransferDTO>(
+                            recurrence.getId(),
+                            recurrence.getInterval(),
+                            recurrence.getFirstOccurrence(),
+                            recurrence.getTransactionType(),
+                            recurrence.getRecurrenceType(),
+                            List.of(transferDTO)
+                    );
+                });
     }
 }

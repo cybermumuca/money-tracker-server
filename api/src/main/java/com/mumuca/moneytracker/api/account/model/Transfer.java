@@ -37,6 +37,9 @@ public class Transfer extends BaseAuditableEntity {
     @Column(name = "billing_date")
     private LocalDate billingDate;
 
+    @Column(name = "installment_index")
+    private Integer installmentIndex;
+
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "balance", column = @Column(name = "balance")),
