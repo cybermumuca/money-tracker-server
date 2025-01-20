@@ -29,5 +29,5 @@ public interface TransferRepository extends JpaRepository<Transfer, String>, Jpa
         SELECT t FROM Transfer t
         WHERE t.id = :transferId AND t.recurrence.user.id = :userId
     """)
-    Optional<Transfer> findTransferById(@Param("transferId") String transferId, @Param("userId") String userId);
+    Optional<Transfer> findTransferByIdAndUserId(@Param("transferId") String transferId, @Param("userId") String userId);
 }
